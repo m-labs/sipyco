@@ -86,9 +86,11 @@ def simple_rexec_server_loop(target_name, target, host, port,
 def connect_global_rpc(controller_rexec, host=None, port=3251,
                        target="master_dataset_db", name="dataset_db"):
     """Creates a global RPC client in a RPC server that is used across
-    all remote execution connections. With the default parameters, it connects
-    to the dataset database (i.e. gives direct dataset access to experiment
-    code remotely executing in controllers).
+    all remote execution connections.
+
+    The default parameters are designed to connects to an ARTIQ dataset
+    database (i.e. gives direct dataset access to experiment code
+    remotely executing in controllers).
 
     If a global object with the same name already exists, the function does
     nothing.

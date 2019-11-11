@@ -97,7 +97,7 @@ class RPCCase(unittest.TestCase):
         """Test that `pc_rpc` can encode a function properly.
 
         Used in `get_rpc_method_list` part of
-        :meth:`artiq.protocols.pc_rpc.Server._process_action`
+        :meth:`sipyco.pc_rpc.Server._process_action`
         """
 
         def _annotated_function(

@@ -1,7 +1,7 @@
 """
 This module provides a remote procedure call (RPC) mechanism over sockets
 between conventional computers (PCs) running Python. It strives to be
-transparent and uses :mod:`artiq.protocols.pyon` internally so that e.g. Numpy
+transparent and uses :mod:`sipyco.pyon` internally so that e.g. Numpy
 arrays can be easily used.
 
 Note that the server operates on copies of objects provided by the client,
@@ -71,7 +71,7 @@ class Client:
     using "get" and/or "set" methods on the server side.
 
     At object initialization, the connection to the remote server is
-    automatically attempted. The user must call :meth:`~artiq.protocols.pc_rpc.Client.close_rpc` to
+    automatically attempted. The user must call :meth:`~sipyco.pc_rpc.Client.close_rpc` to
     free resources properly after initialization completes successfully.
 
     :param host: Identifier of the server. The string can represent a
@@ -83,8 +83,8 @@ class Client:
         Use :class:`.AutoTarget` for automatic selection if the server has only one
         target.
         Use ``None`` to skip selecting a target. The list of targets can then
-        be retrieved using :meth:`~artiq.protocols.pc_rpc.Client.get_rpc_id`
-        and then one can be selected later using :meth:`~artiq.protocols.pc_rpc.Client.select_rpc_target`.
+        be retrieved using :meth:`~sipyco.pc_rpc.Client.get_rpc_id`
+        and then one can be selected later using :meth:`~sipyco.pc_rpc.Client.select_rpc_target`.
     :param timeout: Socket operation timeout. Use ``None`` for blocking
         (default), ``0`` for non-blocking, and a finite value to raise
         ``socket.timeout`` if an operation does not complete within the
@@ -180,7 +180,7 @@ class Client:
 
 
 class AsyncioClient:
-    """This class is similar to :class:`artiq.protocols.pc_rpc.Client`, but
+    """This class is similar to :class:`sipyco.pc_rpc.Client`, but
     uses ``asyncio`` instead of blocking calls.
 
     All RPC methods are coroutines.
@@ -197,7 +197,7 @@ class AsyncioClient:
 
     async def connect_rpc(self, host, port, target_name):
         """Connects to the server. This cannot be done in __init__ because
-        this method is a coroutine. See :class:`artiq.protocols.pc_rpc.Client` for a description of the
+        this method is a coroutine. See :class:`sipyco.pc_rpc.Client` for a description of the
         parameters."""
         self.__reader, self.__writer = \
             await asyncio.open_connection(host, port, limit=100*1024*1024)
@@ -284,7 +284,7 @@ class AsyncioClient:
 
 
 class BestEffortClient:
-    """This class is similar to :class:`artiq.protocols.pc_rpc.Client`, but
+    """This class is similar to :class:`sipyco.pc_rpc.Client`, but
     network errors are suppressed and connections are retried in the
     background.
 
@@ -611,7 +611,7 @@ def simple_server_loop(targets, host, port, description=None):
     """Runs a server until an exception is raised (e.g. the user hits Ctrl-C)
     or termination is requested by a client.
 
-    See :class:`artiq.protocols.pc_rpc.Server` for a description of the parameters.
+    See :class:`sipyco.pc_rpc.Server` for a description of the parameters.
     """
     loop = asyncio.get_event_loop()
     try:

@@ -5,7 +5,7 @@ from sipyco.logging_tools import multiline_log_config
 
 def verbosity_args(parser):
     """
-    Adds `-v`/`-q` argumtnes increase or decrease the default logging levels. 
+    Adds `-v`/`-q` arguments that increase or decrease the default logging levels. 
     Repeat for higher levels.
     """
     group = parser.add_argument_group("verbosity")

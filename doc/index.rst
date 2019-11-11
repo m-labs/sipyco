@@ -1,51 +1,60 @@
-:mod:`sipyco.asyncio_server` module
---------------------------------------------
+Introduction
+============
 
-.. automodule:: sipyco.asyncio_server
-    :members:
+SiPyCo (Simple Python Communications) is a library for writing networked Python programs. It was originally part of ARTIQ, and was split out to enable light-weight programs to be written without a dependency on ARTIQ.
 
+API documentation
+=================
 
 :mod:`sipyco.pyon` module
-----------------------------------
+-------------------------
 
 .. automodule:: sipyco.pyon
     :members:
 
 
 :mod:`sipyco.pc_rpc` module
-------------------------------------
+---------------------------
 
 .. automodule:: sipyco.pc_rpc
     :members:
 
 
-:mod:`sipyco.fire_and_forget` module
----------------------------------------------
-
-.. automodule:: sipyco.fire_and_forget
-    :members:
-
-
 :mod:`sipyco.sync_struct` module
------------------------------------------
+--------------------------------
 
 .. automodule:: sipyco.sync_struct
     :members:
 
 
 :mod:`sipyco.remote_exec` module
------------------------------------------
+--------------------------------
 
 .. automodule:: sipyco.remote_exec
     :members:
 
+:mod:`sipyco.common_args` module
+--------------------------------
+
+.. automodule:: sipyco.common_args
+    :members:
+
+:mod:`sipyco.asyncio_tools` module
+----------------------------------
+
+.. automodule:: sipyco.asyncio_tools
+    :members:
+
+:mod:`sipyco.logging_tools` module
+----------------------------------
+
+.. automodule:: sipyco.logging_tools
+    :members:
+
+
 
 Remote Procedure Call tool
---------------------------
-
-.. argparse::
-   :ref: sipyco.sipyco_rpctool.get_argparser
-   :prog: sipyco_rpctool
+==========================
 
 This tool is the preferred way of handling simple RPC servers.
 Instead of writing a client for simple cases, you can simply use this tool
@@ -104,4 +113,10 @@ to call remote functions of an RPC server.
         python interactive console::
 
             $ sipyco_rpctool ::1 3253 call get_attenuation
-            5.0 dB
+            5.0
+
+Command-line details:
+
+.. argparse::
+   :ref: sipyco.sipyco_rpctool.get_argparser
+   :prog: sipyco_rpctool

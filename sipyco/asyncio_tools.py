@@ -31,7 +31,7 @@ class AsyncioServer:
     """Generic TCP server based on asyncio.
 
     Users of this class must derive from it and define the
-    :meth:`~artiq.protocols.asyncio_server.AsyncioServer._handle_connection_cr`
+    :meth:`~sipyco.asyncio_server.AsyncioServer._handle_connection_cr`
     method/coroutine.
     """
     def __init__(self):
