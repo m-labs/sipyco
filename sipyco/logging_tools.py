@@ -119,10 +119,12 @@ _init_string = b"ARTIQ logging\n"
 class Server(AsyncioServer):
     """Remote logging TCP server.
 
-    Log entries are in the format:
-        source:levelno<total_lines>:name:message
-        continuation...
-        ...continuation
+    Log entries are in the format: ::
+
+      source:levelno<total_lines>:name:message
+      continuation...
+      ...continuation
+
     """
     async def _handle_connection_cr(self, reader, writer):
         try:
