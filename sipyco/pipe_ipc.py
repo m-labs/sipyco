@@ -107,8 +107,8 @@ else:  # windows
             # We cannot use anonymous pipes on Windows, because we do not know
             # in advance if the child process wants a handle open in overlapped
             # mode or not.
-            self.address = "\\\\.\\pipe\\artiq-{}-{}".format(os.getpid(),
-                                                             next(_pipe_count))
+            self.address = "\\\\.\\pipe\\sipyco-{}-{}".format(os.getpid(),
+                                                              next(_pipe_count))
             self.ready = asyncio.Event()
             self.write_buffer = b""
 
