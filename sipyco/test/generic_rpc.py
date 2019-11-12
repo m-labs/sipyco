@@ -15,7 +15,7 @@ class GenericRPCCase(unittest.TestCase):
         for name in list(self.servers):
             self.stop_server(name)
 
-    def start_server(self, name, command, port, sleep=1, target_name=AutoTarget, timeout=1):
+    def start_server(self, name, command, port, sleep=2, target_name=AutoTarget, timeout=1):
         if name in self.servers:
             raise ValueError("server `{}` already started".format(name))
         proc = subprocess.Popen(shlex.split(command))
