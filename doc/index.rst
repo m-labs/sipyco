@@ -20,6 +20,13 @@ API documentation
     :members:
 
 
+:mod:`sipyco.fire_and_forget` module
+------------------------------------
+
+.. automodule:: sipyco.fire_and_forget
+    :members:
+
+
 :mod:`sipyco.sync_struct` module
 --------------------------------
 
