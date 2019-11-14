@@ -1,4 +1,6 @@
 import asyncio
+import atexit
+import collections
 from copy import copy
 
 
@@ -77,3 +79,32 @@ class AsyncioServer:
 
     async def _handle_connection_cr(self, reader, writer):
         raise NotImplementedError
+
+
+class Condition:
+    def __init__(self, *, loop=None):
+        if loop is not None:
+            self._loop = loop
+        else:
+            self._loop = asyncio.get_event_loop()
+        self._waiters = collections.deque()
+
+    async def wait(self):
+        """Wait until notified."""
+        fut = asyncio.Future(loop=self._loop)
+        self._waiters.append(fut)
+        try:
+            await fut
+        finally:
+            self._waiters.remove(fut)
+
+    def notify(self):
+        for fut in self._waiters:
+            if not fut.done():
+                fut.set_result(False)
+
+
+def atexit_register_coroutine(coroutine, loop=None):
+    if loop is None:
+        loop = asyncio.get_event_loop()
+    atexit.register(lambda: loop.run_until_complete(coroutine()))
