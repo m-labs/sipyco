@@ -15,6 +15,7 @@ import asyncio
 from enum import Enum, unique
 from operator import getitem
 from functools import partial
+import logging
 
 from sipyco.monkey_patches import *
 from sipyco import pyon
@@ -22,6 +23,7 @@ from sipyco.asyncio_tools import AsyncioServer
 
 
 _protocol_banner = b"ARTIQ sync_struct\n"
+logger = logging.getLogger(__name__)
 
 
 @unique
@@ -153,8 +155,14 @@ class Subscriber:
                 else:
                     process_mod(target, mod)
 
-                for notify_cb in self.notify_cbs:
-                    notify_cb(mod)
+                try:
+                    for notify_cb in self.notify_cbs:
+                        notify_cb(mod)
+                except Exception:
+                    logger.error("Exception in notifier callback",
+                                 exc_info=True)
+                    break
+
         except ConnectionError:
             pass
         finally:
