@@ -36,6 +36,7 @@ def write_test_data(test_dict):
 class SyncStructCase(unittest.TestCase):
     def init_test_dict(self, init):
         self.received_dict = init
+        self.init_done.set()
         return init
 
     def notify(self, mod):
@@ -48,6 +49,7 @@ class SyncStructCase(unittest.TestCase):
         asyncio.set_event_loop(self.loop)
 
     async def _do_test_recv(self):
+        self.init_done = asyncio.Event()
         self.receiving_done = asyncio.Event()
 
         test_dict = sync_struct.Notifier(dict())
@@ -57,6 +59,10 @@ class SyncStructCase(unittest.TestCase):
         subscriber = sync_struct.Subscriber("test", self.init_test_dict,
                                             self.notify)
         await subscriber.connect(test_address, test_port)
+
+        # Wait for the initial replication to be completed so we actually
+        # exercise the various actions instead of sending just one init mod.
+        await self.init_done.wait()
 
         write_test_data(test_dict)
         await self.receiving_done.wait()
