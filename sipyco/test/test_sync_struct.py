@@ -39,6 +39,11 @@ class SyncStructCase(unittest.TestCase):
         self.init_done.set()
         return init
 
+    def init_test_dict2(self, init):
+        self.received_dict2 = init
+        self.receiving_done2.set()
+        return init
+
     def notify(self, mod):
         if ((mod["action"] == "init" and "finished" in mod["struct"])
                 or (mod["action"] == "setitem" and mod["key"] == "finished")):
@@ -49,6 +54,8 @@ class SyncStructCase(unittest.TestCase):
         asyncio.set_event_loop(self.loop)
 
     async def _do_test_recv(self):
+        # Test sending/receiving changes after a client has already connected.
+
         self.init_done = asyncio.Event()
         self.receiving_done = asyncio.Event()
 
@@ -67,10 +74,65 @@ class SyncStructCase(unittest.TestCase):
         write_test_data(test_dict)
         await self.receiving_done.wait()
 
+        self.assertEqual(self.received_dict, test_dict.raw_view)
+
+
+        # Test adding a notifier and initialising a client from existing data.
+
+        self.receiving_done2 = asyncio.Event()
+
+        publisher.add_notifier("test2", test_dict)
+        subscriber2 = sync_struct.Subscriber("test", self.init_test_dict2,
+                                             None)
+        await subscriber2.connect(test_address, test_port)
+        await self.receiving_done2.wait()
+
+        self.assertEqual(self.received_dict2, test_dict.raw_view)
+
+        await subscriber2.close()
         await subscriber.close()
         await publisher.stop()
 
-        self.assertEqual(self.received_dict, test_dict.raw_view)
+    def test_recv(self):
+        self.loop.run_until_complete(self._do_test_recv())
+
+    def tearDown(self):
+        self.loop.close()
+
+
+class RemoveNotifierCase(unittest.TestCase):
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+    def init_test_dict(self, init):
+        self.received_dict = init
+        self.init_done.set()
+        return init
+
+    def set_done(self):
+        self.subscriber_done.set()
+
+    async def _do_test_recv(self):
+        self.init_done = asyncio.Event()
+        self.subscriber_done = asyncio.Event()
+
+        notifier = sync_struct.Notifier(dict())
+        publisher = sync_struct.Publisher({"test": notifier})
+        await publisher.start(test_address, test_port)
+
+        subscriber = sync_struct.Subscriber("test", self.init_test_dict,
+                                            disconnect_cb=self.set_done)
+        await subscriber.connect(test_address, test_port)
+
+        await self.init_done.wait()
+        notifier["test_data"] = 42
+        publisher.remove_notifier("test")
+
+        await self.subscriber_done.wait()
+        self.assertEqual(self.received_dict, notifier.raw_view)
+
+        await publisher.stop()
 
     def test_recv(self):
         self.loop.run_until_complete(self._do_test_recv())

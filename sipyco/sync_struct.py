@@ -284,15 +284,57 @@ class Publisher(AsyncioServer):
     :param notifiers: A dictionary containing the notifiers to associate with
         the :class:`.Publisher`. The keys of the dictionary are the names of
         the notifiers to be used with :class:`.Subscriber`.
+        :meth:`add_notifier` and :meth:`remove_notifier` can be used to make
+        changes after construction.
     """
     def __init__(self, notifiers):
         AsyncioServer.__init__(self)
-        self.notifiers = notifiers
-        self._recipients = {k: set() for k in notifiers.keys()}
-        self._notifier_names = {id(v): k for k, v in notifiers.items()}
 
-        for notifier in notifiers.values():
-            notifier.publish = partial(self.publish, notifier)
+        self.notifiers = dict()
+
+        # Maps from notifier id()s to names.
+        self._notifier_names = dict()
+
+        # Maps from notifier names to lists of connected subscribers. Each list
+        # element is an asyncio.Queue into which the mods to be published are
+        # pushed (or None to indicate removal of the notifier).
+        self._recipients = dict()
+
+        for k, v in notifiers.items():
+            self.add_notifier(k, v)
+
+    def add_notifier(self, name, notifier):
+        """Add a notifier for changes to be published.
+
+        :param name: The name to publish under; must be unique.
+        :param notifier: The :class:`.Notifier` instance to publish.
+        """
+
+        assert name not in self.notifiers
+        self.notifiers[name] = notifier
+        self._recipients[name] = set()
+        self._notifier_names[id(notifier)] = name
+        notifier.publish = partial(self.publish, notifier)
+
+    def remove_notifier(self, name):
+        """Remove an existing notifier with the given name.
+
+        This causes all subscriber connections for the target notifier to be
+        closed (after any pending mods have been relayed).
+
+        :param name: The name of the notifier to remove, as previously passed
+            to the constructor or :meth:`add_notifier`.
+        """
+
+        notifier = self.notifiers[name]
+        notifier.publish = None
+
+        for recipient in self._recipients[name]:
+            recipient.put_nowait(None)
+
+        del self._notifier_names[id(notifier)]
+        del self._recipients[name]
+        del self.notifiers[name]
 
     async def _handle_connection_cr(self, reader, writer):
         try:
@@ -319,11 +361,19 @@ class Publisher(AsyncioServer):
             try:
                 while True:
                     line = await queue.get()
+                    if line is None:
+                        # Notifier removed, close connection.
+                        return
                     writer.write(line)
                     # raise exception on connection error
                     await writer.drain()
             finally:
-                self._recipients[notifier_name].remove(queue)
+                try:
+                    self._recipients[notifier_name].remove(queue)
+                except KeyError:
+                    # Notifier might have been removed using remove_notifier
+                    # already.
+                    pass
         except (ConnectionError, TimeoutError):
             # subscribers disconnecting are a normal occurrence
             pass
