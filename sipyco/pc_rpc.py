@@ -550,7 +550,7 @@ class Server(_AsyncioServer):
             else:
                 raise ValueError("Unknown action: {}"
                                  .format(obj["action"]))
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, SystemExit):
             raise
         except:
             return {

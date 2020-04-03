@@ -31,7 +31,7 @@ class RPCCase(unittest.TestCase):
                     proc.kill()
                     raise
 
-    def _blocking_echo(self, target):
+    def _blocking_echo(self, target, die_using_sys_exit=False):
         for attempt in range(100):
             time.sleep(.2)
             try:
@@ -48,12 +48,21 @@ class RPCCase(unittest.TestCase):
             self.assertEqual(test_object, test_object_back)
             with self.assertRaises(AttributeError):
                 remote.non_existing_method
-            remote.terminate()
+            if die_using_sys_exit:
+                # If the server dies and just drops the connection, we
+                # expect a client-side error due to lack of data.
+                with self.assertRaises(SyntaxError):
+                    remote.raise_sys_exit()
+            else:
+                remote.terminate()
         finally:
             remote.close_rpc()
 
     def test_blocking_echo(self):
         self._run_server_and_test(self._blocking_echo, "test")
+
+    def test_sys_exit(self):
+        self._run_server_and_test(self._blocking_echo, "test", True)
 
     def test_blocking_echo_autotarget(self):
         self._run_server_and_test(self._blocking_echo, pc_rpc.AutoTarget)
@@ -126,6 +135,9 @@ class RPCCase(unittest.TestCase):
 
 
 class Echo:
+    def raise_sys_exit(self):
+        sys.exit(0)
+
     def echo(self, x):
         return x
 
