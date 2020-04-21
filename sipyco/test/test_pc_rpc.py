@@ -82,6 +82,8 @@ class RPCCase(unittest.TestCase):
             self.assertEqual(test_object, test_object_back)
             test_object_back = await remote.async_echo(test_object)
             self.assertEqual(test_object, test_object_back)
+            with self.assertRaises(TypeError):
+                await remote.return_unserializable()
             with self.assertRaises(AttributeError):
                 await remote.non_existing_method
             await remote.terminate()
@@ -144,6 +146,10 @@ class Echo:
     async def async_echo(self, x):
         await asyncio.sleep(0.01)
         return x
+
+    def return_unserializable(self):
+        # Arbitrary classes can't be PYON-serialized.
+        return Echo()
 
 
 def run_server():

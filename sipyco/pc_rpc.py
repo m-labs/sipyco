@@ -534,32 +534,39 @@ class Server(_AsyncioServer):
                         },
                         "Terminate the server.")
                 logger.debug("RPC docs for %s: %s", target, doc)
-                return {"status": "ok", "ret": doc}
+                return doc
             elif obj["action"] == "call":
                 logger.debug("calling %s", _PrettyPrintCall(obj))
                 if (self.builtin_terminate and obj["name"] ==
                         "terminate"):
                     self._terminate_request.set()
-                    return {"status": "ok", "ret": None}
+                    return None
                 else:
                     method = getattr(target, obj["name"])
                     ret = method(*obj["args"], **obj["kwargs"])
                     if inspect.iscoroutine(ret):
                         ret = await ret
-                    return {"status": "ok", "ret": ret}
+                    return ret
             else:
                 raise ValueError("Unknown action: {}"
                                  .format(obj["action"]))
-        except (asyncio.CancelledError, SystemExit):
-            raise
-        except:
-            return {
-                "status": "failed",
-                "exception": current_exc_packed()
-            }
         finally:
             if self._noparallel is not None:
                 self._noparallel.release()
+
+    async def _process_and_pyonize(self, target, obj):
+        try:
+            return pyon.encode({
+                "status": "ok",
+                "ret": await self._process_action(target, obj)
+            })
+        except (asyncio.CancelledError, SystemExit):
+            raise
+        except:
+            return pyon.encode({
+                "status": "failed",
+                "exception": current_exc_packed()
+            })
 
     async def _handle_connection_cr(self, reader, writer):
         try:
@@ -595,8 +602,9 @@ class Server(_AsyncioServer):
                 line = await reader.readline()
                 if not line:
                     break
-                reply = await self._process_action(target, pyon.decode(line.decode()))
-                writer.write((pyon.encode(reply) + "\n").encode())
+                reply = await self._process_and_pyonize(target,
+                    pyon.decode(line.decode()))
+                writer.write((reply + "\n").encode())
         except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
             # May happens on Windows when client disconnects
             pass
