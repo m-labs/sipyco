@@ -8,7 +8,7 @@ objects. Its main features are:
   floats, complex numbers, strings, tuples, lists, dictionaries.
 * Those data types are accurately reconstructed (unlike JSON where e.g. tuples
   become lists, and dictionary keys are turned into strings).
-* Supports Numpy arrays.
+* Supports Numpy arrays. (Converted to be C-contiguous as required.)
 
 The main rationale for this new custom serializer (instead of using JSON) is
 that JSON does not support Numpy and more generally cannot be extended with
@@ -149,6 +149,7 @@ class _Encoder:
         return "OrderedDict(" + self.encode(list(x.items())) + ")"
 
     def encode_nparray(self, x):
+        x = numpy.ascontiguousarray(x)
         r = "nparray("
         r += self.encode(x.shape) + ", "
         r += self.encode(x.dtype.str) + ", "
