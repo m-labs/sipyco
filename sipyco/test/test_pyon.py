@@ -39,6 +39,12 @@ class PYON(unittest.TestCase):
                 with self.subTest(enc=enc, k=k, v=orig[k]):
                     np.testing.assert_equal(result[k], orig[k])
 
+    def test_encdec_array_order(self):
+        """Test encoding of non c-contiguous arrays (see #5)"""
+        array = np.reshape(np.arange(6), (2, 3), order='F')
+        np.testing.assert_array_equal(
+            array, pyon.decode(pyon.encode(array)))
+
 
 _json_test_object = {
     "a": "b",
