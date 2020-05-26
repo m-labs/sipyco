@@ -4,7 +4,7 @@ import collections
 import logging
 from copy import copy
 
-loggger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class TaskObject:
