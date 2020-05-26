@@ -93,6 +93,7 @@ class Client:
         in the middle of a RPC can break subsequent RPCs (from the same
         client).
     """
+
     def __init__(self, host, port, target_name=AutoTarget, timeout=None):
         self.__socket = socket.create_connection((host, port), timeout)
 
@@ -174,6 +175,7 @@ class Client:
     def __getattr__(self, name):
         if name not in self.__valid_methods:
             raise AttributeError
+
         def proxy(*args, **kwargs):
             return self.__do_rpc(name, args, kwargs)
         return proxy
@@ -188,6 +190,7 @@ class AsyncioClient:
     Concurrent access from different asyncio tasks is supported; all calls
     use a single lock.
     """
+
     def __init__(self):
         self.__lock = asyncio.Lock()
         self.__reader = None
@@ -277,6 +280,7 @@ class AsyncioClient:
     def __getattr__(self, name):
         if name not in self.__valid_methods:
             raise AttributeError
+
         async def proxy(*args, **kwargs):
             res = await self.__do_rpc(name, args, kwargs)
             return res
@@ -296,6 +300,7 @@ class BestEffortClient:
     :param retry: Amount of time to wait between retries when reconnecting
         in the background.
     """
+
     def __init__(self, host, port, target_name,
                  firstcon_timeout=1.0, retry=5.0):
         self.__host = host
@@ -407,6 +412,7 @@ class BestEffortClient:
     def __getattr__(self, name):
         if name not in self.__valid_methods:
             raise AttributeError
+
         def proxy(*args, **kwargs):
             return self.__do_rpc(name, args, kwargs)
         return proxy
@@ -473,6 +479,7 @@ class Server(_AsyncioServer):
     :param allow_parallel: Allow concurrent asyncio calls to the target's
         methods.
     """
+
     def __init__(self, targets, description=None, builtin_terminate=False,
                  allow_parallel=False):
         _AsyncioServer.__init__(self)
@@ -490,14 +497,14 @@ class Server(_AsyncioServer):
     def _document_function(function):
         """
         Turn a function into a tuple of its arguments and documentation.
-        
+
         Allows remote inspection of what methods are available on a local device.
-        
+
         Args:
             function (Callable): a Python function to be documented.
-        
+
         Returns:
-            Tuple[dict, str]: tuple of (argument specifications, 
+            Tuple[dict, str]: tuple of (argument specifications,
             function documentation).
             Any type annotations are converted to strings (for PYON serialization).
         """
@@ -603,7 +610,7 @@ class Server(_AsyncioServer):
                 if not line:
                     break
                 reply = await self._process_and_pyonize(target,
-                    pyon.decode(line.decode()))
+                                                        pyon.decode(line.decode()))
                 writer.write((reply + "\n").encode())
         except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
             # May happens on Windows when client disconnects
