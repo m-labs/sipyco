@@ -215,7 +215,7 @@ def store_file(filename, x):
     """Encodes a Python object and writes it to the specified file."""
     contents = encode(x, True)
     directory = os.path.abspath(os.path.dirname(filename))
-    with tempfile.NamedTemporaryFile("w", dir=directory, delete=False) as f:
+    with tempfile.NamedTemporaryFile("w", dir=directory, delete=False, encoding="utf-8") as f:
         f.write(contents)
         f.write("\n")
         tmpname = f.name
@@ -224,5 +224,5 @@ def store_file(filename, x):
 
 def load_file(filename):
     """Parses the specified file and returns the decoded Python object."""
-    with open(filename, "r") as f:
+    with open(filename, "r", encoding="utf-8") as f:
         return decode(f.read())
