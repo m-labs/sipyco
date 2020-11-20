@@ -1,6 +1,7 @@
 import unittest
 import json
 from fractions import Fraction
+from collections import OrderedDict
 
 import numpy as np
 
@@ -17,6 +18,7 @@ _pyon_test_object = {
     "x": np.float16(9.0), "y": np.float32(9.0), "z": np.float64(9.0),
     1j: 1-9j,
     "q": np.complex128(1j),
+    "od": OrderedDict(zip("abc", range(3))),
 }
 
 
