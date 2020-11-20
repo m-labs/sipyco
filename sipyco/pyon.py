@@ -18,13 +18,13 @@ function call syntax to express special data types.
 
 
 from operator import itemgetter
-import base64
 from fractions import Fraction
 from collections import OrderedDict
 import os
 import tempfile
 
 import numpy
+import pybase64 as base64
 
 
 _encode_map = {
@@ -152,16 +152,16 @@ class _Encoder:
         x = numpy.ascontiguousarray(x)
         r = "nparray("
         r += self.encode(x.shape) + ", "
-        r += self.encode(x.dtype.str) + ", "
-        r += self.encode(base64.b64encode(x.data))
-        r += ")"
+        r += self.encode(x.dtype.str) + ", b\""
+        r += base64.b64encode(x.data).decode()
+        r += "\")"
         return r
 
     def encode_npscalar(self, x):
         r = "npscalar("
-        r += self.encode(x.dtype.str) + ", "
-        r += self.encode(base64.b64encode(x.data))
-        r += ")"
+        r += self.encode(x.dtype.str) + ", b\""
+        r += base64.b64encode(x.data).decode()
+        r += "\")"
         return r
 
     def encode(self, x):

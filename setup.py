@@ -7,7 +7,7 @@ setup(
     url="https://m-labs.hk/artiq",
     description="Simple Python communications",
     license="LGPLv3+",
-    install_requires=["setuptools", "numpy"],
+    install_requires=["setuptools", "numpy", "pybase64"],
     packages=find_packages(),
     entry_points={
         "console_scripts": [
