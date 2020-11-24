@@ -55,6 +55,19 @@ def _validate_target_name(target_name, target_names):
     return target_name
 
 
+def _socket_readline(socket, bufsize=4096):
+    buf = socket.recv(bufsize).decode()
+    offset = 0
+    while buf.find("\n", offset) == -1:
+        more = socket.recv(bufsize)
+        if not more:
+            break
+        buf += more.decode()
+        offset += len(more)
+
+    return buf
+
+
 class Client:
     """This class proxies the methods available on the server so that they
     can be used as if they were local methods.
@@ -145,13 +158,8 @@ class Client:
         self.__socket.sendall(line.encode())
 
     def __recv(self):
-        buf = self.__socket.recv(4096).decode()
-        while "\n" not in buf:
-            more = self.__socket.recv(4096)
-            if not more:
-                break
-            buf += more.decode()
-        return pyon.decode(buf)
+        line = _socket_readline(self.__socket)
+        return pyon.decode(line)
 
     def __do_action(self, action):
         self.__send(action)
@@ -378,13 +386,8 @@ class BestEffortClient:
         self.__socket.sendall(line.encode())
 
     def __recv(self):
-        buf = self.__socket.recv(4096).decode()
-        while "\n" not in buf:
-            more = self.__socket.recv(4096)
-            if not more:
-                break
-            buf += more.decode()
-        return pyon.decode(buf)
+        line = _socket_readline(self.__socket)
+        return pyon.decode(line)
 
     def __do_rpc(self, name, args, kwargs):
         if self.__conretry_thread is not None:
