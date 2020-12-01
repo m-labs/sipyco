@@ -74,7 +74,7 @@ class AsyncioServer:
 
     def _client_done(self, task):
         self._client_tasks.remove(task)
-        if task.exception() and task.exception() != asyncio.CancelledError:
+        if not task.cancelled() and task.exception():
             logger.error("Client connection closed with error", exc_info=True)
 
     def _handle_connection(self, reader, writer):
