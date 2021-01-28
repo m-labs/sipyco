@@ -2,6 +2,7 @@ import asyncio
 import logging
 import re
 
+from sipyco import keepalive
 from sipyco.monkey_patches import *
 from sipyco.asyncio_tools import TaskObject, AsyncioServer
 
@@ -194,8 +195,8 @@ class LogForwarder(logging.Handler, TaskObject):
         reader = writer = None
         while True:
             try:
-                reader, writer = await asyncio.open_connection(self.host,
-                                                               self.port)
+                reader, writer = await keepalive.open_connection(self.host,
+                                                                 self.port)
                 writer.write(_init_string)
                 while True:
                     message = await self._queue.get() + "\n"

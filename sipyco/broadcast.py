@@ -1,7 +1,7 @@
 import asyncio
 
 from sipyco.monkey_patches import *
-from sipyco import pyon
+from sipyco import keepalive, pyon
 from sipyco.asyncio_tools import AsyncioServer
 
 
@@ -18,7 +18,7 @@ class Receiver:
 
     async def connect(self, host, port):
         self.reader, self.writer = \
-            await asyncio.open_connection(host, port, limit=100*1024*1024)
+            await keepalive.open_connection(host, port, limit=100*1024*1024)
         try:
             self.writer.write(_init_string)
             self.writer.write((self.name + "\n").encode())
