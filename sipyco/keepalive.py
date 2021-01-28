@@ -1,6 +1,7 @@
-import sys
-import socket
+import asyncio
 import logging
+import socket
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -19,3 +20,16 @@ def set_keepalive(sock: socket, after_idle=10, interval=10, max_fails=3):
     else:
         logger.warning("TCP keepalive not supported on platform '%s', ignored",
                        sys.platform)
+
+
+async def open_connection(host,
+                          port,
+                          after_idle=10,
+                          interval=10,
+                          max_fails=3,
+                          *args,
+                          **kwargs):
+    reader, writer = await asyncio.open_connection(host, port, *args, **kwargs)
+    sock = writer.get_extra_info('socket')
+    set_keepalive(sock, after_idle, interval, max_fails)
+    return reader, writer
