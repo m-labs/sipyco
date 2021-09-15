@@ -14,17 +14,23 @@ The main rationale for this new custom serializer (instead of using JSON) is
 that JSON does not support Numpy and more generally cannot be extended with
 other data types while keeping a concise syntax. Here we can use the Python
 function call syntax to express special data types.
+
+PYON can be extended via encoding & decoding plugins to whatever types you would like to serialize.
+An example can be found in :mod:`sipyco.test.test_pyon_plugin`.
 """
 
-
+import itertools
+import os
+import tempfile
 from operator import itemgetter
 from fractions import Fraction
 from collections import OrderedDict
-import os
-import tempfile
 
 import numpy
 import pybase64 as base64
+
+import sipyco
+import sipyco.plugins as plugin
 
 
 _encode_map = {
@@ -171,10 +177,28 @@ class _Encoder:
         return getattr(self, "encode_" + ty)(x)
 
 
-def encode(x, pretty=False):
+@sipyco.hookimpl
+def sipyco_pyon_encode(value, pretty=False, indent_level=0):
+    """Default PYON encoder implementation."""
+    try:
+        return _Encoder(pretty=pretty, indent_level=indent_level).encode(value)
+    except TypeError:
+        return None
+
+
+def encode(x, pretty=False, indent_level=0):
     """Serializes a Python object and returns the corresponding string in
     Python syntax."""
-    return _Encoder(pretty).encode(x)
+    pm = plugin.get_plugin_manager()
+
+    func_val = pm.hook.sipyco_pyon_encode(
+        value=x, pretty=pretty, indent_level=indent_level
+    )
+
+    if func_val is None:
+        raise TypeError("`{!r}` ({}) is not PYON serializable".format(x, type(x)))
+    else:
+        return func_val
 
 
 def _nparray(shape, dtype, data):
@@ -204,10 +228,22 @@ _eval_dict = {
 }
 
 
+@sipyco.hookimpl
+def sipyco_pyon_decoders():
+    """Default Sipyco PYON decoding valid types."""
+    return _eval_dict.items()
+
+
 def decode(s):
     """Parses a string in the Python syntax, reconstructs the corresponding
     object, and returns it."""
-    return eval(s, _eval_dict, {})
+    pm = plugin.get_plugin_manager()
+    _decode_eval_dict = dict(
+        itertools.chain.from_iterable(
+            filter(lambda r: r is not None, pm.hook.sipyco_pyon_decoders())
+        )
+    )
+    return eval(s, _decode_eval_dict, {})
 
 
 def store_file(filename, x):
