@@ -42,7 +42,7 @@ _encode_map = {
     slice: "slice",
     Fraction: "fraction",
     OrderedDict: "ordereddict",
-    numpy.ndarray: "nparray"
+    numpy.ndarray: "nparray",
 }
 
 _numpy_scalar = {
@@ -71,7 +71,7 @@ class _Encoder:
         self.indent_level = 0
 
     def indent(self):
-        return "    "*self.indent_level
+        return "    " * self.indent_level
 
     def encode_none(self, x):
         return "null"
@@ -167,8 +167,7 @@ class _Encoder:
     def encode(self, x):
         ty = _encode_map.get(type(x), None)
         if ty is None:
-            raise TypeError("`{!r}` ({}) is not PYON serializable"
-                            .format(x, type(x)))
+            raise TypeError("`{!r}` ({}) is not PYON serializable".format(x, type(x)))
         return getattr(self, "encode_" + ty)(x)
 
 
@@ -201,7 +200,7 @@ _eval_dict = {
     "Fraction": Fraction,
     "OrderedDict": OrderedDict,
     "nparray": _nparray,
-    "npscalar": _npscalar
+    "npscalar": _npscalar,
 }
 
 
@@ -215,7 +214,9 @@ def store_file(filename, x):
     """Encodes a Python object and writes it to the specified file."""
     contents = encode(x, True)
     directory = os.path.abspath(os.path.dirname(filename))
-    with tempfile.NamedTemporaryFile("w", dir=directory, delete=False, encoding="utf-8") as f:
+    with tempfile.NamedTemporaryFile(
+        "w", dir=directory, delete=False, encoding="utf-8"
+    ) as f:
         f.write(contents)
         f.write("\n")
         tmpname = f.name
