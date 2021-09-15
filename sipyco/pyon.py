@@ -72,9 +72,9 @@ _str_translation = {
 
 
 class _Encoder:
-    def __init__(self, pretty):
+    def __init__(self, pretty, indent_level=0):
         self.pretty = pretty
-        self.indent_level = 0
+        self.indent_level = indent_level
 
     def indent(self):
         return "    " * self.indent_level
@@ -100,22 +100,22 @@ class _Encoder:
 
     def encode_tuple(self, x):
         if len(x) == 1:
-            return "(" + self.encode(x[0]) + ", )"
+            return "(" + encode(x[0], self.pretty, self.indent_level) + ", )"
         else:
             r = "("
-            r += ", ".join([self.encode(item) for item in x])
+            r += ", ".join([encode(item, self.pretty, self.indent_level) for item in x])
             r += ")"
             return r
 
     def encode_list(self, x):
         r = "["
-        r += ", ".join([self.encode(item) for item in x])
+        r += ", ".join([encode(item, self.pretty, self.indent_level) for item in x])
         r += "]"
         return r
 
     def encode_set(self, x):
         r = "{"
-        r += ", ".join([self.encode(item) for item in x])
+        r += ", ".join([encode(item, self.pretty, self.indent_level) for item in x])
         r += "}"
         return r
 
@@ -127,8 +127,14 @@ class _Encoder:
 
         r = "{"
         if not self.pretty or len(x) < 2:
-            r += ", ".join([self.encode(k) + ": " + self.encode(v)
-                           for k, v in items()])
+            r += ", ".join(
+                [
+                    encode(k, self.pretty, self.indent_level)
+                    + ": "
+                    + encode(v, self.pretty, self.indent_level)
+                    for k, v in items()
+                ]
+            )
         else:
             self.indent_level += 1
             r += "\n"
@@ -137,7 +143,12 @@ class _Encoder:
                 if not first:
                     r += ",\n"
                 first = False
-                r += self.indent() + self.encode(k) + ": " + self.encode(v)
+                r += (
+                    self.indent()
+                    + encode(k, self.pretty, self.indent_level)
+                    + ": "
+                    + encode(v, self.pretty, self.indent_level)
+                )
             r += "\n"  # no ','
             self.indent_level -= 1
             r += self.indent()
@@ -148,24 +159,30 @@ class _Encoder:
         return repr(x)
 
     def encode_fraction(self, x):
-        return "Fraction({}, {})".format(self.encode(x.numerator),
-                                         self.encode(x.denominator))
+        return "Fraction({}, {})".format(
+            encode(x.numerator, self.pretty, self.indent_level),
+            encode(x.denominator, self.pretty, self.indent_level),
+        )
 
     def encode_ordereddict(self, x):
-        return "OrderedDict(" + self.encode(list(x.items())) + ")"
+        return (
+            "OrderedDict("
+            + encode(list(x.items()), self.pretty, self.indent_level)
+            + ")"
+        )
 
     def encode_nparray(self, x):
         x = numpy.ascontiguousarray(x)
         r = "nparray("
-        r += self.encode(x.shape) + ", "
-        r += self.encode(x.dtype.str) + ", b\""
+        r += encode(x.shape, self.pretty, self.indent_level) + ", "
+        r += encode(x.dtype.str, self.pretty, self.indent_level) + ", b\""
         r += base64.b64encode(x.data).decode()
         r += "\")"
         return r
 
     def encode_npscalar(self, x):
         r = "npscalar("
-        r += self.encode(x.dtype.str) + ", b\""
+        r += encode(x.dtype.str, self.pretty, self.indent_level) + ", b\""
         r += base64.b64encode(x.data).decode()
         r += "\")"
         return r

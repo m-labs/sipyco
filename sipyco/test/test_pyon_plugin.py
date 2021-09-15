@@ -49,3 +49,10 @@ def test_pyon_plugin_encode_decode(monkeypatch):
     monkeypatch.setattr(plugin, "get_plugin_manager", pyon_extra_plugin)
     test_value = Point(2.5, 3.4)
     assert pyon.decode(pyon.encode(test_value)) == test_value
+
+
+def test_pyon_nested_encode(monkeypatch):
+    """Tests that nested items will be properly encoded."""
+    monkeypatch.setattr(plugin, "get_plugin_manager", pyon_extra_plugin)
+    test_value = {"first": Point(2.5, {"nothing": 0})}
+    assert pyon.decode(pyon.encode(test_value)) == test_value
