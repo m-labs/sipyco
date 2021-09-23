@@ -17,6 +17,8 @@ import logging
 import socket
 import threading
 import time
+import types
+import typing
 from operator import itemgetter
 
 from sipyco.monkey_patches import *
@@ -186,6 +188,7 @@ class Client:
 
         def proxy(*args, **kwargs):
             return self.__do_rpc(name, args, kwargs)
+
         return proxy
 
 
@@ -292,6 +295,7 @@ class AsyncioClient:
         async def proxy(*args, **kwargs):
             res = await self.__do_rpc(name, args, kwargs)
             return res
+
         return proxy
 
 
@@ -418,6 +422,7 @@ class BestEffortClient:
 
         def proxy(*args, **kwargs):
             return self.__do_rpc(name, args, kwargs)
+
         return proxy
 
     def get_selected_target(self):
@@ -507,15 +512,26 @@ class Server(_AsyncioServer):
             function (Callable): a Python function to be documented.
 
         Returns:
-            Tuple[dict, str]: tuple of (argument specifications,
+            Tuple[str, str]: tuple of (directly rendered argument specifications,
             function documentation).
             Any type annotations are converted to strings (for PYON serialization).
         """
-        argspec_dict = dict(inspect.getfullargspec(function)._asdict())
-        # Fix issue #1186: PYON can't serialize type annotations.
-        if any(argspec_dict.get("annotations", {})):
-            argspec_dict["annotations"] = str(argspec_dict["annotations"])
-        return argspec_dict, inspect.getdoc(function)
+        sig = inspect.signature(function)
+
+        def is_annotation_void(x: typing.Union[inspect.Signature, inspect.Parameter]):
+            return not x or x is inspect.Signature.empty
+
+        def ensure_annotation_str(anno: typing.Tuple[str, inspect.Parameter]):
+            if not (is_annotation_void(anno[1]) or isinstance(anno[1], str)):
+                raise AttributeError(f"RPC type annotations must be stringified to preserve context. "
+                                     f"offender function name: {function.__name__}, "
+                                     f"offending argument name: {anno[0]}")
+
+        for annotation in [("return type", sig.return_annotation)] + [(k, v.annotation) for k, v in
+                                                                     sig.parameters.items()]:
+            ensure_annotation_str(annotation)
+
+        return str(sig), inspect.getdoc(function)
 
     async def _process_action(self, target, obj):
         if self._noparallel is not None:
@@ -533,16 +549,7 @@ class Server(_AsyncioServer):
                     method = getattr(target, name)
                     doc["methods"][name] = self._document_function(method)
                 if self.builtin_terminate:
-                    doc["methods"]["terminate"] = (
-                        {
-                            "args": ["self"],
-                            "defaults": None,
-                            "varargs": None,
-                            "varkw": None,
-                            "kwonlyargs": [],
-                            "kwonlydefaults": [],
-                        },
-                        "Terminate the server.")
+                    doc["methods"]["terminate"] = ("()", "Terminate the server.")
                 logger.debug("RPC docs for %s: %s", target, doc)
                 return doc
             elif obj["action"] == "call":

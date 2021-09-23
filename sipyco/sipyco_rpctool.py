@@ -47,7 +47,7 @@ def list_methods(remote):
         print(doc["docstring"])
         print()
     for name, (argspec, docstring) in sorted(doc["methods"].items()):
-        print(name + inspect.formatargspec(**argspec))
+        print(name + argspec)
         if docstring is not None:
             print(textwrap.indent(docstring, "    "))
         print()
