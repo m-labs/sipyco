@@ -16,7 +16,7 @@ class Target:
         """
         return 4125380
 
-    def plus(self, a: 'int', b: int = 0) -> 'int':
+    def plus(self, a: int, b: int = 0) -> int:
         """
         Calculates a + b
         :param a: left operand
@@ -25,7 +25,7 @@ class Target:
         """
         return a + b
 
-    def max(self, a: 'int', b: 'int') -> 'Optional[int]':
+    def max(self, a: int, b: int) -> 'Optional[int]':
         """
         Compares a and b, and find which one is bigger
         :param a: left comparator
@@ -40,7 +40,7 @@ class Target:
 
         return dict([(args[i], args[i + 1]) for i in range(0, len(args), 2)])
 
-    def identity(self, x) -> 'Any':
+    def identity(self, x) -> Any:
         return x
 
 
@@ -48,9 +48,9 @@ class Target:
 list_method_fixture = """
 dictify(args: 'List[Any]') -> 'Dict[Any, Any]'
 
-identity(x) -> 'Any'
+identity(x) -> Any
 
-max(a: 'int', b: 'int') -> 'Optional[int]'
+max(a: int, b: int) -> 'Optional[int]'
     Compares a and b, and find which one is bigger
     :param a: left comparator
     :param b: right comparator
@@ -59,7 +59,7 @@ max(a: 'int', b: 'int') -> 'Optional[int]'
 output_value() -> None
     This is a docstring
 
-plus(a: 'int', b: 'int' = 0) -> 'int'
+plus(a: int, b: int = 0) -> int
     Calculates a + b
     :param a: left operand
     :param b: right operand

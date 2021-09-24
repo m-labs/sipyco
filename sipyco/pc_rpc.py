@@ -21,6 +21,7 @@ import types
 import typing
 from operator import itemgetter
 
+import sipyco
 from sipyco.monkey_patches import *
 from sipyco import pyon
 from sipyco.asyncio_tools import AsyncioServer as _AsyncioServer
@@ -522,13 +523,13 @@ class Server(_AsyncioServer):
             return not x or x is inspect.Signature.empty
 
         def ensure_annotation_str(anno):
-            if not (is_annotation_void(anno[1]) or isinstance(anno[1], str)):
+            if not (is_annotation_void(anno[1]) or isinstance(anno[1], str) or '[' not in repr(anno[1])):
                 raise AttributeError(f"RPC type annotations must be stringified to preserve context. "
                                      f"offender function name: {function.__name__}, "
                                      f"offending argument name: {anno[0]}")
 
         for annotation in [("return type", sig.return_annotation)] + [(k, v.annotation) for k, v in
-                                                                     sig.parameters.items()]:
+                                                                      sig.parameters.items()]:
             ensure_annotation_str(annotation)
 
         return str(sig), inspect.getdoc(function)
