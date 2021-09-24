@@ -518,10 +518,10 @@ class Server(_AsyncioServer):
         """
         sig = inspect.signature(function)
 
-        def is_annotation_void(x: typing.Union[inspect.Signature, inspect.Parameter]):
+        def is_annotation_void(x):
             return not x or x is inspect.Signature.empty
 
-        def ensure_annotation_str(anno: typing.Tuple[str, inspect.Parameter]):
+        def ensure_annotation_str(anno):
             if not (is_annotation_void(anno[1]) or isinstance(anno[1], str)):
                 raise AttributeError(f"RPC type annotations must be stringified to preserve context. "
                                      f"offender function name: {function.__name__}, "
