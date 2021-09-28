@@ -49,6 +49,9 @@ class SyncStructCase(unittest.TestCase):
                 or (mod["action"] == "setitem" and mod["key"] == "finished")):
             self.receiving_sync_done.set()
 
+    async def on_disconnect(self, _mod):
+        self.disconnect_done.set()
+
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
@@ -57,13 +60,14 @@ class SyncStructCase(unittest.TestCase):
         self.init_done = asyncio.Event()
         self.receiving_done = asyncio.Event()
         self.receiving_sync_done = asyncio.Event()
+        self.disconnect_done = asyncio.Event()
 
         test_dict = sync_struct.Notifier(dict())
         publisher = sync_struct.Publisher({"test": test_dict})
         await publisher.start(test_address, test_port)
 
         subscriber = sync_struct.Subscriber("test", self.init_test_dict,
-                                            [self.notify_async, self.notify_sync])
+                                            [self.notify_async, self.notify_sync], self.on_disconnect)
         await subscriber.connect(test_address, test_port)
 
         # Wait for the initial replication to be completed so we actually
