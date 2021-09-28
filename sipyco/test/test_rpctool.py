@@ -25,7 +25,7 @@ class Target:
         """
         return a + b
 
-    def max(self, a: int, b: int) -> 'Optional[int]':
+    def max(self, a: int, b: int) -> Optional[int]:
         """
         Compares a and b, and find which one is bigger
         :param a: left comparator
@@ -34,7 +34,7 @@ class Target:
         """
         return None if a == b else max(a, b)
 
-    def dictify(self, args: 'List[Any]') -> 'Dict[Any, Any]':
+    def dictify(self, args: List[Any]) -> Dict[Any, Any]:
         if len(args) % 2 == 1:
             raise ArithmeticError("not pairs")
 
@@ -46,11 +46,11 @@ class Target:
 
 # ensure the methods are sorted
 list_method_fixture = """
-dictify(args: 'List[Any]') -> 'Dict[Any, Any]'
+dictify(args: List[Any]) -> Dict[Any, Any]
 
 identity(x) -> Any
 
-max(a: int, b: int) -> 'Optional[int]'
+max(a: int, b: int) -> Union[int, NoneType]
     Compares a and b, and find which one is bigger
     :param a: left comparator
     :param b: right comparator

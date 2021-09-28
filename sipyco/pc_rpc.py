@@ -518,20 +518,6 @@ class Server(_AsyncioServer):
             Any type annotations are converted to strings (for PYON serialization).
         """
         sig = inspect.signature(function)
-
-        def is_annotation_void(x):
-            return not x or x is inspect.Signature.empty
-
-        def ensure_annotation_str(anno):
-            if not (is_annotation_void(anno[1]) or isinstance(anno[1], str) or '[' not in repr(anno[1])):
-                raise AttributeError(f"RPC type annotations must be stringified to preserve context. "
-                                     f"offender function name: {function.__name__}, "
-                                     f"offending argument name: {anno[0]}")
-
-        for annotation in [("return type", sig.return_annotation)] + [(k, v.annotation) for k, v in
-                                                                      sig.parameters.items()]:
-            ensure_annotation_str(annotation)
-
         return str(sig), inspect.getdoc(function)
 
     async def _process_action(self, target, obj):
