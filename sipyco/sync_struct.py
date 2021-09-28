@@ -12,7 +12,6 @@ immutable types. Lists and dicts can be nested arbitrarily.
 """
 
 import asyncio
-import inspect
 from enum import Enum, unique
 from operator import getitem
 from functools import partial
