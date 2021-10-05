@@ -17,11 +17,8 @@ import logging
 import socket
 import threading
 import time
-import types
-import typing
 from operator import itemgetter
 
-import sipyco
 from sipyco.monkey_patches import *
 from sipyco import pyon
 from sipyco.asyncio_tools import AsyncioServer as _AsyncioServer
