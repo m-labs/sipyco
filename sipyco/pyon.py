@@ -149,7 +149,8 @@ class _Encoder:
         return "OrderedDict(" + self.encode(list(x.items())) + ")"
 
     def encode_nparray(self, x):
-        x = numpy.ascontiguousarray(x)
+        if numpy.ndim(x) > 0:
+            x = numpy.ascontiguousarray(x)
         r = "nparray("
         r += self.encode(x.shape) + ", "
         r += self.encode(x.dtype.str) + ", b\""
