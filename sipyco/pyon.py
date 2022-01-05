@@ -14,17 +14,23 @@ The main rationale for this new custom serializer (instead of using JSON) is
 that JSON does not support Numpy and more generally cannot be extended with
 other data types while keeping a concise syntax. Here we can use the Python
 function call syntax to express special data types.
+
+PYON can be extended via encoding & decoding plugins to whatever types you would like to serialize.
+An example can be found in :mod:`sipyco.test.test_pyon_plugin`.
 """
 
-
+import itertools
+import os
+import tempfile
 from operator import itemgetter
 from fractions import Fraction
 from collections import OrderedDict
-import os
-import tempfile
 
 import numpy
 import pybase64 as base64
+
+import sipyco
+import sipyco.plugins as plugin
 
 
 _encode_map = {
@@ -42,7 +48,7 @@ _encode_map = {
     slice: "slice",
     Fraction: "fraction",
     OrderedDict: "ordereddict",
-    numpy.ndarray: "nparray"
+    numpy.ndarray: "nparray",
 }
 
 _numpy_scalar = {
@@ -66,12 +72,12 @@ _str_translation = {
 
 
 class _Encoder:
-    def __init__(self, pretty):
+    def __init__(self, pretty, indent_level=0):
         self.pretty = pretty
-        self.indent_level = 0
+        self.indent_level = indent_level
 
     def indent(self):
-        return "    "*self.indent_level
+        return "    " * self.indent_level
 
     def encode_none(self, x):
         return "null"
@@ -94,22 +100,22 @@ class _Encoder:
 
     def encode_tuple(self, x):
         if len(x) == 1:
-            return "(" + self.encode(x[0]) + ", )"
+            return "(" + encode(x[0], self.pretty, self.indent_level) + ", )"
         else:
             r = "("
-            r += ", ".join([self.encode(item) for item in x])
+            r += ", ".join([encode(item, self.pretty, self.indent_level) for item in x])
             r += ")"
             return r
 
     def encode_list(self, x):
         r = "["
-        r += ", ".join([self.encode(item) for item in x])
+        r += ", ".join([encode(item, self.pretty, self.indent_level) for item in x])
         r += "]"
         return r
 
     def encode_set(self, x):
         r = "{"
-        r += ", ".join([self.encode(item) for item in x])
+        r += ", ".join([encode(item, self.pretty, self.indent_level) for item in x])
         r += "}"
         return r
 
@@ -121,8 +127,14 @@ class _Encoder:
 
         r = "{"
         if not self.pretty or len(x) < 2:
-            r += ", ".join([self.encode(k) + ": " + self.encode(v)
-                           for k, v in items()])
+            r += ", ".join(
+                [
+                    encode(k, self.pretty, self.indent_level)
+                    + ": "
+                    + encode(v, self.pretty, self.indent_level)
+                    for k, v in items()
+                ]
+            )
         else:
             self.indent_level += 1
             r += "\n"
@@ -131,7 +143,12 @@ class _Encoder:
                 if not first:
                     r += ",\n"
                 first = False
-                r += self.indent() + self.encode(k) + ": " + self.encode(v)
+                r += (
+                    self.indent()
+                    + encode(k, self.pretty, self.indent_level)
+                    + ": "
+                    + encode(v, self.pretty, self.indent_level)
+                )
             r += "\n"  # no ','
             self.indent_level -= 1
             r += self.indent()
@@ -142,25 +159,31 @@ class _Encoder:
         return repr(x)
 
     def encode_fraction(self, x):
-        return "Fraction({}, {})".format(self.encode(x.numerator),
-                                         self.encode(x.denominator))
+        return "Fraction({}, {})".format(
+            encode(x.numerator, self.pretty, self.indent_level),
+            encode(x.denominator, self.pretty, self.indent_level),
+        )
 
     def encode_ordereddict(self, x):
-        return "OrderedDict(" + self.encode(list(x.items())) + ")"
+        return (
+            "OrderedDict("
+            + encode(list(x.items()), self.pretty, self.indent_level)
+            + ")"
+        )
 
     def encode_nparray(self, x):
         if numpy.ndim(x) > 0:
             x = numpy.ascontiguousarray(x)
         r = "nparray("
-        r += self.encode(x.shape) + ", "
-        r += self.encode(x.dtype.str) + ", b\""
+        r += encode(x.shape, self.pretty, self.indent_level) + ", "
+        r += encode(x.dtype.str, self.pretty, self.indent_level) + ", b\""
         r += base64.b64encode(x.data).decode()
         r += "\")"
         return r
 
     def encode_npscalar(self, x):
         r = "npscalar("
-        r += self.encode(x.dtype.str) + ", b\""
+        r += encode(x.dtype.str, self.pretty, self.indent_level) + ", b\""
         r += base64.b64encode(x.data).decode()
         r += "\")"
         return r
@@ -168,15 +191,32 @@ class _Encoder:
     def encode(self, x):
         ty = _encode_map.get(type(x), None)
         if ty is None:
-            raise TypeError("`{!r}` ({}) is not PYON serializable"
-                            .format(x, type(x)))
+            raise TypeError("`{!r}` ({}) is not PYON serializable".format(x, type(x)))
         return getattr(self, "encode_" + ty)(x)
 
 
-def encode(x, pretty=False):
+@sipyco.hookimpl
+def sipyco_pyon_encode(value, pretty=False, indent_level=0):
+    """Default PYON encoder implementation."""
+    try:
+        return _Encoder(pretty=pretty, indent_level=indent_level).encode(value)
+    except TypeError:
+        return None
+
+
+def encode(x, pretty=False, indent_level=0):
     """Serializes a Python object and returns the corresponding string in
     Python syntax."""
-    return _Encoder(pretty).encode(x)
+    pm = plugin.get_plugin_manager()
+
+    func_val = pm.hook.sipyco_pyon_encode(
+        value=x, pretty=pretty, indent_level=indent_level
+    )
+
+    if func_val is None:
+        raise TypeError("`{!r}` ({}) is not PYON serializable".format(x, type(x)))
+    else:
+        return func_val
 
 
 def _nparray(shape, dtype, data):
@@ -202,21 +242,35 @@ _eval_dict = {
     "Fraction": Fraction,
     "OrderedDict": OrderedDict,
     "nparray": _nparray,
-    "npscalar": _npscalar
+    "npscalar": _npscalar,
 }
+
+
+@sipyco.hookimpl
+def sipyco_pyon_decoders():
+    """Default Sipyco PYON decoding valid types."""
+    return _eval_dict.items()
 
 
 def decode(s):
     """Parses a string in the Python syntax, reconstructs the corresponding
     object, and returns it."""
-    return eval(s, _eval_dict, {})
+    pm = plugin.get_plugin_manager()
+    _decode_eval_dict = dict(
+        itertools.chain.from_iterable(
+            filter(lambda r: r is not None, pm.hook.sipyco_pyon_decoders())
+        )
+    )
+    return eval(s, _decode_eval_dict, {})
 
 
 def store_file(filename, x):
     """Encodes a Python object and writes it to the specified file."""
     contents = encode(x, True)
     directory = os.path.abspath(os.path.dirname(filename))
-    with tempfile.NamedTemporaryFile("w", dir=directory, delete=False, encoding="utf-8") as f:
+    with tempfile.NamedTemporaryFile(
+        "w", dir=directory, delete=False, encoding="utf-8"
+    ) as f:
         f.write(contents)
         f.write("\n")
         tmpname = f.name
