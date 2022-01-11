@@ -12,7 +12,6 @@ immutable types. Lists and dicts can be nested arbitrarily.
 """
 
 import asyncio
-import inspect
 from enum import Enum, unique
 from operator import getitem
 from functools import partial
@@ -154,19 +153,13 @@ class Subscriber:
                 mod = pyon.decode(line.decode())
 
                 if mod["action"] == "init":
-                    if asyncio.iscoroutinefunction(self.target_builder):
-                        target = await self.target_builder(mod["struct"])
-                    else:
-                        target = self.target_builder(mod["struct"])
+                    target = self.target_builder(mod["struct"])
                 else:
                     process_mod(target, mod)
 
                 try:
                     for notify_cb in self.notify_cbs:
-                        if asyncio.iscoroutinefunction(notify_cb):
-                            await notify_cb(mod)
-                        else:
-                            notify_cb(mod)
+                        notify_cb(mod)
                 except:
                     logger.error("Exception in notifier callback",
                                  exc_info=True)
@@ -176,10 +169,7 @@ class Subscriber:
             pass
         finally:
             if self.disconnect_cb is not None:
-                if asyncio.iscoroutinefunction(self.disconnect_cb):
-                    await self.disconnect_cb()
-                else:
-                    self.disconnect_cb()
+                self.disconnect_cb()
 
 
 class Notifier:

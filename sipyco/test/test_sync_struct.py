@@ -39,18 +39,10 @@ class SyncStructCase(unittest.TestCase):
         self.init_done.set()
         return init
 
-    async def notify_async(self, mod):
+    def notify(self, mod):
         if ((mod["action"] == "init" and "finished" in mod["struct"])
                 or (mod["action"] == "setitem" and mod["key"] == "finished")):
             self.receiving_done.set()
-
-    def notify_sync(self, mod):
-        if ((mod["action"] == "init" and "finished" in mod["struct"])
-                or (mod["action"] == "setitem" and mod["key"] == "finished")):
-            self.receiving_sync_done.set()
-
-    async def on_disconnect(self, _mod):
-        self.disconnect_done.set()
 
     def setUp(self):
         self.loop = asyncio.new_event_loop()
@@ -59,15 +51,13 @@ class SyncStructCase(unittest.TestCase):
     async def _do_test_recv(self):
         self.init_done = asyncio.Event()
         self.receiving_done = asyncio.Event()
-        self.receiving_sync_done = asyncio.Event()
-        self.disconnect_done = asyncio.Event()
 
         test_dict = sync_struct.Notifier(dict())
         publisher = sync_struct.Publisher({"test": test_dict})
         await publisher.start(test_address, test_port)
 
         subscriber = sync_struct.Subscriber("test", self.init_test_dict,
-                                            [self.notify_async, self.notify_sync], self.on_disconnect)
+                                            self.notify)
         await subscriber.connect(test_address, test_port)
 
         # Wait for the initial replication to be completed so we actually
@@ -76,7 +66,6 @@ class SyncStructCase(unittest.TestCase):
 
         write_test_data(test_dict)
         await self.receiving_done.wait()
-        await self.receiving_sync_done.wait()
 
         await subscriber.close()
         await publisher.stop()
