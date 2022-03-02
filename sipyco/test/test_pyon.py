@@ -4,6 +4,7 @@ from fractions import Fraction
 from collections import OrderedDict
 
 import numpy as np
+import xarray as xr
 
 from sipyco import pyon
 
@@ -21,6 +22,11 @@ _pyon_test_object = {
     "od": OrderedDict(zip("abc", range(3))),
 }
 
+_pyon_test_xarray_object = xr.DataArray(
+    data=np.random.randn(5),
+    coords=[("x", np.arange(0, 5))],
+    attrs={"foo": "bar"},
+)
 
 class PYON(unittest.TestCase):
     def test_encdec(self):
@@ -46,6 +52,18 @@ class PYON(unittest.TestCase):
         array = np.reshape(np.arange(6), (2, 3), order='F')
         np.testing.assert_array_equal(
             array, pyon.decode(pyon.encode(array)))
+        
+    def test_encdec_xarray(self):
+        """Test encoding & decoding of xarray objects:"""
+        for enc in pyon.encode, lambda x: pyon.encode(x, True):
+            xr.testing.assert_equal(
+                pyon.decode(enc(_pyon_test_xarray_object)),
+                _pyon_test_xarray_object
+            )
+            xr.testing.assert_equal(
+                pyon.decode(enc(_pyon_test_xarray_object.to_dataset(name="a"))),
+                _pyon_test_xarray_object.to_dataset(name="a")
+            )
 
 
 _json_test_object = {
@@ -62,3 +80,4 @@ class JSONPYON(unittest.TestCase):
             for dec in pyon.decode, json.loads:
                 self.assertEqual(dec(enc(_json_test_object)),
                                  _json_test_object)
+

@@ -24,6 +24,7 @@ import os
 import tempfile
 
 import numpy
+import xarray
 import pybase64 as base64
 
 
@@ -42,7 +43,9 @@ _encode_map = {
     slice: "slice",
     Fraction: "fraction",
     OrderedDict: "ordereddict",
-    numpy.ndarray: "nparray"
+    numpy.ndarray: "nparray",
+    xarray.DataArray: "xrarray",
+    xarray.Dataset: "xrdataset"
 }
 
 _numpy_scalar = {
@@ -164,6 +167,21 @@ class _Encoder:
         r += base64.b64encode(x.data).decode()
         r += "\")"
         return r
+    
+    def encode_xrarray(self, x):
+        d = x.to_dict(data=False)
+        d["data"] = x.values
+        for k in d["coords"]:
+            d["coords"][k]["data"] = x.coords[k].values
+        return "xrarray(" + self.encode_dict(d) + ")"
+        
+    def encode_xrdataset(self, x):
+        d = x.to_dict(data=False)
+        for k in d["data_vars"]:
+            d["data_vars"][k]["data"] = x.data_vars[k].values
+        for k in d["coords"]:
+            d["coords"][k]["data"] = x.coords[k].values
+        return "xrdataset(" + self.encode_dict(d) + ")"
 
     def encode(self, x):
         ty = _encode_map.get(type(x), None)
@@ -189,6 +207,14 @@ def _npscalar(ty, data):
     return numpy.frombuffer(base64.b64decode(data), dtype=ty)[0]
 
 
+def _xrarray(d):
+    return xarray.DataArray.from_dict(d)
+
+
+def _xrdataset(d):
+    return xarray.Dataset.from_dict(d)
+
+
 _eval_dict = {
     "__builtins__": {},
 
@@ -202,7 +228,9 @@ _eval_dict = {
     "Fraction": Fraction,
     "OrderedDict": OrderedDict,
     "nparray": _nparray,
-    "npscalar": _npscalar
+    "npscalar": _npscalar,
+    "xrarray": _xrarray,
+    "xrdataset": _xrdataset,
 }
 
 
