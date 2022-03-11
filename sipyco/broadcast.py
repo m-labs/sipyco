@@ -18,7 +18,7 @@ class Receiver:
 
     async def connect(self, host, port):
         self.reader, self.writer = \
-            await keepalive.open_connection(host, port, limit=100*1024*1024)
+            await keepalive.async_open_connection(host, port, limit=100 * 1024 * 1024)
         try:
             self.writer.write(_init_string)
             self.writer.write((self.name + "\n").encode())

@@ -195,8 +195,8 @@ class LogForwarder(logging.Handler, TaskObject):
         reader = writer = None
         while True:
             try:
-                reader, writer = await keepalive.open_connection(self.host,
-                                                                 self.port)
+                reader, writer = await keepalive.async_open_connection(self.host,
+                                                                       self.port)
                 writer.write(_init_string)
                 while True:
                     message = await self._queue.get() + "\n"

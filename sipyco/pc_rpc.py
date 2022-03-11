@@ -211,7 +211,7 @@ class AsyncioClient:
         this method is a coroutine. See :class:`sipyco.pc_rpc.Client` for a description of the
         parameters."""
         self.__reader, self.__writer = \
-            await keepalive.open_connection(host, port, limit=100*1024*1024)
+            await keepalive.async_open_connection(host, port, limit=100 * 1024 * 1024)
         try:
             self.__writer.write(_init_string)
             server_identification = await self.__recv()
