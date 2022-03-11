@@ -4,6 +4,8 @@ import collections
 import logging
 from copy import copy
 
+from sipyco import keepalive
+
 logger = logging.getLogger(__name__)
 
 
@@ -82,6 +84,7 @@ class AsyncioServer:
             logger.error("Client connection closed with error", exc_info=True)
 
     def _handle_connection(self, reader, writer):
+        keepalive.set_keepalive(writer.get_extra_info("socket"))
         task = asyncio.ensure_future(self._handle_connection_cr(reader, writer))
         self._client_tasks.add(task)
         task.add_done_callback(self._client_done)
