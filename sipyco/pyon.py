@@ -24,7 +24,10 @@ import os
 import tempfile
 
 import numpy
-import pybase64 as base64
+try:
+    import pybase64 as base64
+except ImportError:
+    import base64
 
 
 _encode_map = {
