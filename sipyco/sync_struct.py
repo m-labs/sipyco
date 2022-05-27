@@ -17,7 +17,6 @@ from operator import getitem
 from functools import partial
 import logging
 
-from sipyco.monkey_patches import *
 from sipyco import keepalive, pyon
 from sipyco.asyncio_tools import AsyncioServer
 

@@ -19,7 +19,6 @@ import threading
 import time
 from operator import itemgetter
 
-from sipyco.monkey_patches import *
 from sipyco import keepalive, pyon
 from sipyco.asyncio_tools import AsyncioServer as _AsyncioServer
 from sipyco.packed_exceptions import *

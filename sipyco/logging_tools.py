@@ -3,7 +3,6 @@ import logging
 import re
 
 from sipyco import keepalive
-from sipyco.monkey_patches import *
 from sipyco.asyncio_tools import TaskObject, AsyncioServer
 
 

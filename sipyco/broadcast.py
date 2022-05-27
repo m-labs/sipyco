@@ -1,6 +1,5 @@
 import asyncio
 
-from sipyco.monkey_patches import *
 from sipyco import keepalive, pyon
 from sipyco.asyncio_tools import AsyncioServer
 
