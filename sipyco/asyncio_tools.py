@@ -1,4 +1,6 @@
 import asyncio
+import signal
+import socket
 import atexit
 import collections
 import logging
@@ -120,3 +122,33 @@ def atexit_register_coroutine(coroutine, loop=None):
     if loop is None:
         loop = asyncio.get_event_loop()
     atexit.register(lambda: loop.run_until_complete(coroutine()))
+
+
+class SignalHandler:
+    def setup(self):
+        self.prev_sigint = signal.signal(signal.SIGINT, lambda sig, frame: None)
+        self.prev_sigterm = signal.signal(signal.SIGTERM, lambda sig, frame: None)
+        self.rsock, self.wsock = socket.socketpair()
+        self.rsock.setblocking(0)
+        self.wsock.setblocking(0)
+        self.prev_wakeup_fd = signal.set_wakeup_fd(self.wsock.fileno())
+
+    def teardown(self):
+        signal.set_wakeup_fd(self.prev_wakeup_fd)
+        self.rsock.close()
+        self.wsock.close()
+        signal.signal(signal.SIGINT, self.prev_sigint)
+        signal.signal(signal.SIGTERM, self.prev_sigterm)
+
+    async def wait_terminate(self):
+        loop = asyncio.get_event_loop()
+        while True:
+            signum = (await loop.sock_recv(self.rsock, 1))[0]
+            if signum == signal.SIGINT:
+                print()
+                print("Caught Ctrl-C, terminating...")
+                break
+            elif signum == signal.SIGTERM:
+                print()
+                print("Caught SIGTERM, terminating...")
+                break
