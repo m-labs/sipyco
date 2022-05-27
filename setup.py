@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="sipyco",
-    version="1.3",
+    version="1.4",
     author="M-Labs",
     url="https://m-labs.hk/artiq",
     description="Simple Python communications",
