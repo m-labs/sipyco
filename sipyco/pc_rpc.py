@@ -20,7 +20,7 @@ import time
 from operator import itemgetter
 
 from sipyco import keepalive, pyon
-from sipyco.asyncio_tools import AsyncioServer as _AsyncioServer
+from sipyco.asyncio_tools import SignalHandler, AsyncioServer as _AsyncioServer
 from sipyco.packed_exceptions import *
 
 logger = logging.getLogger(__name__)
@@ -632,11 +632,20 @@ def simple_server_loop(targets, host, port, description=None):
     """
     loop = asyncio.get_event_loop()
     try:
-        server = Server(targets, description, True)
-        loop.run_until_complete(server.start(host, port))
+        signal_handler = SignalHandler()
+        signal_handler.setup()
         try:
-            loop.run_until_complete(server.wait_terminate())
+            server = Server(targets, description, True)
+            loop.run_until_complete(server.start(host, port))
+            try:
+                _, pending = loop.run_until_complete(asyncio.wait(
+                    [signal_handler.wait_terminate(), server.wait_terminate()],
+                    return_when=asyncio.FIRST_COMPLETED))
+                for task in pending:
+                    task.cancel()
+            finally:
+                loop.run_until_complete(server.stop())
         finally:
-            loop.run_until_complete(server.stop())
+            signal_handler.teardown()
     finally:
         loop.close()
