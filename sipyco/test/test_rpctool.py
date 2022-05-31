@@ -1,4 +1,3 @@
-import os
 import sys
 import asyncio
 import unittest
@@ -27,10 +26,7 @@ class TestRPCTool(unittest.TestCase):
         await server.stop()
 
     def test_rpc(self):
-        if os.name == "nt":
-            loop = asyncio.ProactorEventLoop()
-        else:
-            loop = asyncio.new_event_loop()
+        loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
             loop.run_until_complete(self.do_test())

@@ -1,17 +1,13 @@
 import unittest
 import sys
 import asyncio
-import os
 
 from sipyco import pipe_ipc
 
 
 class IPCCase(unittest.TestCase):
     def setUp(self):
-        if os.name == "nt":
-            self.loop = asyncio.ProactorEventLoop()
-        else:
-            self.loop = asyncio.new_event_loop()
+        self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
     def tearDown(self):
@@ -61,11 +57,8 @@ async def coro_child():
 
 
 def run_child_asyncio():
-    if os.name == "nt":
-        loop = asyncio.ProactorEventLoop()
-        asyncio.set_event_loop(loop)
-    else:
-        loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     loop.run_until_complete(coro_child())
     loop.close()
 

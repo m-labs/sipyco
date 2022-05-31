@@ -630,7 +630,8 @@ def simple_server_loop(targets, host, port, description=None):
 
     See :class:`sipyco.pc_rpc.Server` for a description of the parameters.
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
         signal_handler = SignalHandler()
         signal_handler.setup()
