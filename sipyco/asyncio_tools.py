@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class TaskObject:
-    def start(self):
+    def start(self, loop=None):
         async def log_exceptions(awaitable):
             try:
                 return await awaitable()
@@ -22,7 +22,7 @@ class TaskObject:
                 logger.error("Unhandled exception in TaskObject task body", exc_info=True)
                 raise
 
-        self.task = asyncio.ensure_future(log_exceptions(self._do))
+        self.task = asyncio.ensure_future(log_exceptions(self._do), loop=loop)
 
     async def stop(self):
         self.task.cancel()
