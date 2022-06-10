@@ -624,29 +624,33 @@ class Server(_AsyncioServer):
         await self._terminate_request.wait()
 
 
-def simple_server_loop(targets, host, port, description=None):
+def simple_server_loop(targets, host, port, description=None, loop=None):
     """Runs a server until an exception is raised (e.g. the user hits Ctrl-C)
     or termination is requested by a client.
 
     See :class:`sipyco.pc_rpc.Server` for a description of the parameters.
     """
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    if loop is None:
+        used_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(used_loop)
+    else:
+        used_loop = loop
     try:
         signal_handler = SignalHandler()
         signal_handler.setup()
         try:
             server = Server(targets, description, True)
-            loop.run_until_complete(server.start(host, port))
+            used_loop.run_until_complete(server.start(host, port))
             try:
-                _, pending = loop.run_until_complete(asyncio.wait(
+                _, pending = used_loop.run_until_complete(asyncio.wait(
                     [signal_handler.wait_terminate(), server.wait_terminate()],
                     return_when=asyncio.FIRST_COMPLETED))
                 for task in pending:
                     task.cancel()
             finally:
-                loop.run_until_complete(server.stop())
+                used_loop.run_until_complete(server.stop())
         finally:
             signal_handler.teardown()
     finally:
-        loop.close()
+        if loop is None:
+            used_loop.close()
