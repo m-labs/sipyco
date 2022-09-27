@@ -12,6 +12,10 @@
         src = self;
         propagatedBuildInputs = with pkgs.python3Packages; [ pybase64 numpy ];
       };
+      sipyco-aarch64 = (with nixpkgs.legacyPackages.aarch64-linux; python3Packages.buildPythonPackage {
+        inherit (sipyco) pname version src;
+        propagatedBuildInputs = with python3Packages; [ pybase64 numpy ];
+      });
       sphinxcontrib-wavedrom = pkgs.python3Packages.buildPythonPackage rec {
         pname = "sphinxcontrib-wavedrom";
         version = "3.0.2";
@@ -84,6 +88,11 @@
           pkgs.python3Packages.sphinx pkgs.python3Packages.sphinx_rtd_theme
           pkgs.python3Packages.sphinx-argparse sphinxcontrib-wavedrom latex-sipyco-manual
         ];
+      };
+
+      packages.aarch64-linux = {
+        sipyco = sipyco-aarch64;
+        default = sipyco-aarch64;
       };
 
       hydraJobs = {
