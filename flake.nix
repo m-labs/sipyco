@@ -35,6 +35,7 @@
     in rec {
       packages.x86_64-linux = {
         inherit sipyco sphinxcontrib-wavedrom latex-sipyco-manual;
+        default = sipyco;
         sipyco-manual-html = pkgs.stdenvNoCC.mkDerivation rec {
           name = "sipyco-manual-html-${version}";
           version = sipyco.version;
@@ -79,9 +80,7 @@
         };
       };
 
-      defaultPackage.x86_64-linux = packages.x86_64-linux.sipyco;
-
-      devShell.x86_64-linux = pkgs.mkShell {
+      devShells.x86_64-linux.default = pkgs.mkShell {
         name = "sipyco-dev-shell";
         buildInputs = [
           (pkgs.python3.withPackages(ps: with ps; [ pybase64 numpy ]))
