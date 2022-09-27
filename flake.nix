@@ -84,7 +84,7 @@
       devShell.x86_64-linux = pkgs.mkShell {
         name = "sipyco-dev-shell";
         buildInputs = [
-          (pkgs.python3.withPackages(ps: with packages.x86_64-linux; [ pybase64 numpy ]))
+          (pkgs.python3.withPackages(ps: with ps; [ pybase64 numpy ]))
           pkgs.python3Packages.sphinx pkgs.python3Packages.sphinx_rtd_theme
           pkgs.python3Packages.sphinx-argparse sphinxcontrib-wavedrom latex-sipyco-manual
         ];
