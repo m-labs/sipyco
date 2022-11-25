@@ -210,8 +210,11 @@ _eval_dict = {
 
 
 def decode(s):
-    """Parses a string in the Python syntax, reconstructs the corresponding
-    object, and returns it."""
+    """
+    Parses a string in the Python syntax, reconstructs the corresponding
+    object, and returns it.
+    **Shouldn't** be used with untrusted inputs, as it can cause vulnerability against injection attacks.
+    """
     return eval(s, _eval_dict, {})
 
 
