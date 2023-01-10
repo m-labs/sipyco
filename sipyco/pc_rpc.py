@@ -569,8 +569,13 @@ class Server(_AsyncioServer):
                 "status": "ok",
                 "ret": await self._process_action(target, obj)
             })
-        except (asyncio.CancelledError, SystemExit):
+        except asyncio.CancelledError:
             raise
+        except SystemExit:
+            if hasattr(self, "_terminate_request"):
+                self._terminate_request.set()
+            else:
+                raise
         except:
             return pyon.encode({
                 "status": "failed",
@@ -613,6 +618,8 @@ class Server(_AsyncioServer):
                     break
                 reply = await self._process_and_pyonize(target,
                                                         pyon.decode(line.decode()))
+                if reply is None:
+                    return
                 writer.write((reply + "\n").encode())
         except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
             # May happens on Windows when client disconnects
