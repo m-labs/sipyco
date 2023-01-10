@@ -82,7 +82,7 @@ class AsyncioServer:
             task.result()
         except asyncio.CancelledError:
             pass
-        except Exception:
+        except:
             logger.error("Client connection closed with error", exc_info=True)
 
     def _handle_connection(self, reader, writer):
