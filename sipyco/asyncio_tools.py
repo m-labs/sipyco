@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class TaskObject:
     def start(self, loop=None):
+        """loop must be specified unless this is called from a running event loop."""
         async def log_exceptions(awaitable):
             try:
                 return await awaitable()
@@ -97,15 +98,11 @@ class AsyncioServer:
 
 class Condition:
     def __init__(self, *, loop=None):
-        if loop is not None:
-            self._loop = loop
-        else:
-            self._loop = asyncio.get_event_loop()
         self._waiters = collections.deque()
 
     async def wait(self):
         """Wait until notified."""
-        fut = asyncio.Future(loop=self._loop)
+        fut = asyncio.Future(loop=asyncio.get_event_loop())
         self._waiters.append(fut)
         try:
             await fut
@@ -119,6 +116,7 @@ class Condition:
 
 
 def atexit_register_coroutine(coroutine, loop=None):
+    """loop must be specified unless this is called from a running event loop"""
     if loop is None:
         loop = asyncio.get_event_loop()
     atexit.register(lambda: loop.run_until_complete(coroutine()))
