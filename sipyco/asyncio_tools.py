@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class TaskObject:
-    def start(self, loop=None):
+    def start(self, *, loop=None):
         """loop must be specified unless this is called from a running event loop."""
         async def log_exceptions(awaitable):
             try:
@@ -115,7 +115,7 @@ class Condition:
                 fut.set_result(False)
 
 
-def atexit_register_coroutine(coroutine, loop=None):
+def atexit_register_coroutine(coroutine, *, loop=None):
     """loop must be specified unless this is called from a running event loop"""
     if loop is None:
         loop = asyncio.get_event_loop()

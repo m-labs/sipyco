@@ -631,7 +631,7 @@ class Server(_AsyncioServer):
         await self._terminate_request.wait()
 
 
-def simple_server_loop(targets, host, port, description=None, loop=None):
+def simple_server_loop(targets, host, port, description=None, *, loop=None):
     """Runs a server until an exception is raised (e.g. the user hits Ctrl-C)
     or termination is requested by a client.
 
