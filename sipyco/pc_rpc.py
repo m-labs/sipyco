@@ -521,7 +521,7 @@ class Server(_AsyncioServer):
             await self._noparallel.acquire()
         try:
             if obj["action"] == "get_rpc_method_list":
-                members = inspect.getmembers(target, inspect.ismethod)
+                members = inspect.getmembers(target, callable)
                 doc = {
                     "docstring": inspect.getdoc(target),
                     "methods": {}
@@ -606,7 +606,7 @@ class Server(_AsyncioServer):
             if callable(target):
                 target = target()
 
-            valid_methods = inspect.getmembers(target, inspect.ismethod)
+            valid_methods = inspect.getmembers(target, callable)
             valid_methods = {m[0] for m in valid_methods}
             if self.builtin_terminate:
                 valid_methods.add("terminate")
