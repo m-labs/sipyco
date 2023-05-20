@@ -336,13 +336,17 @@ class BestEffortClient:
         else:
             self.__socket = socket.create_connection(
                 (self.__host, self.__port), timeout)
-            self.__socket.settimeout(None)
         self.__socket.sendall(_init_string)
         server_identification = self.__recv()
         target_name = _validate_target_name(self.__target_name,
                                             server_identification["targets"])
         self.__socket.sendall((target_name + "\n").encode())
         self.__valid_methods = self.__recv()
+
+        # Only after the initial handshake is complete, disable the socket
+        # timeout (if any). Otherwise, the constructor can block forever if a
+        # server accepts the connection but does not respond.
+        self.__socket.settimeout(None)
 
     def __start_conretry(self):
         self.__conretry_thread = threading.Thread(target=self.__conretry)
