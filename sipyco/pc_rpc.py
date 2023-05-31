@@ -205,7 +205,7 @@ class AsyncioClient:
         self.__target_names = None
         self.__description = None
 
-    async def connect_rpc(self, host, port, target_name):
+    async def connect_rpc(self, host, port, target_name=AutoTarget):
         """Connects to the server. This cannot be done in __init__ because
         this method is a coroutine. See :class:`sipyco.pc_rpc.Client` for a description of the
         parameters."""
