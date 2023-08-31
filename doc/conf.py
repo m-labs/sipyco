@@ -22,7 +22,7 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = 'SiPyCo'
-copyright = '2019-2022, M-Labs'
+copyright = '2019-2023, M-Labs'
 author = 'M-Labs'
 
 # The short X.Y version
