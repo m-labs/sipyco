@@ -654,7 +654,8 @@ def simple_server_loop(targets, host, port, description=None, *, loop=None):
             used_loop.run_until_complete(server.start(host, port))
             try:
                 _, pending = used_loop.run_until_complete(asyncio.wait(
-                    [signal_handler.wait_terminate(), server.wait_terminate()],
+                    [asyncio.create_task(signal_handler.wait_terminate()),
+                     asyncio.create_task(server.wait_terminate())],
                     return_when=asyncio.FIRST_COMPLETED))
                 for task in pending:
                     task.cancel()
