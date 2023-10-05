@@ -635,7 +635,7 @@ class Server(_AsyncioServer):
         await self._terminate_request.wait()
 
 
-def simple_server_loop(targets, host, port, description=None, *, loop=None):
+def simple_server_loop(targets, host, port, description=None, allow_parallel=False, *, loop=None):
     """Runs a server until an exception is raised (e.g. the user hits Ctrl-C)
     or termination is requested by a client.
 
@@ -650,7 +650,7 @@ def simple_server_loop(targets, host, port, description=None, *, loop=None):
         signal_handler = SignalHandler()
         signal_handler.setup()
         try:
-            server = Server(targets, description, True)
+            server = Server(targets, description, True, allow_parallel)
             used_loop.run_until_complete(server.start(host, port))
             try:
                 _, pending = used_loop.run_until_complete(asyncio.wait(
