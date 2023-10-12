@@ -78,7 +78,10 @@ async def async_open_connection(
     forwarded to set_keepalive.
     """
     reader, writer = await asyncio.open_connection(host, port, *args, **kwargs)
-    sock = writer.get_extra_info('socket')
+    transport_socket = writer.get_extra_info('socket')
+    # Using native socket to call deprecated `ioctl` in `TransportSocket`  
+    # wrapper in Python 3.11. See https://github.com/python/cpython/pull/24538
+    sock = transport_socket._sock
     set_keepalive(sock, after_idle, interval, max_fails)
     return reader, writer
 
