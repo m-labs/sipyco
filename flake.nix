@@ -8,7 +8,7 @@
       pkgs = import nixpkgs { system = "x86_64-linux"; };
       sipyco = pkgs.python3Packages.buildPythonPackage {
         pname = "sipyco";
-        version = "1.5";
+        version = "1.6";
         src = self;
         propagatedBuildInputs = with pkgs.python3Packages; [ pybase64 numpy ];
       };
