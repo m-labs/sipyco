@@ -20,6 +20,7 @@ function call syntax to express special data types.
 from operator import itemgetter
 from fractions import Fraction
 from collections import OrderedDict
+import json
 import os
 import tempfile
 
@@ -60,14 +61,6 @@ for _t in _numpy_scalar:
     _encode_map[getattr(numpy, _t)] = "npscalar"
 
 
-_str_translation = {
-    ord("\""): "\\\"",
-    ord("\\"): "\\\\",
-    ord("\n"): "\\n",
-    ord("\r"): "\\r",
-}
-
-
 class _Encoder:
     def __init__(self, pretty):
         self.pretty = pretty
@@ -90,7 +83,7 @@ class _Encoder:
 
     def encode_str(self, x):
         # Do not use repr() for JSON compatibility.
-        return "\"" + x.translate(_str_translation) + "\""
+        return json.dumps(x)
 
     def encode_bytes(self, x):
         return repr(x)
