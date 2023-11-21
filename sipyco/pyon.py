@@ -20,6 +20,7 @@ function call syntax to express special data types.
 from operator import itemgetter
 from fractions import Fraction
 from collections import OrderedDict
+import io
 import json
 import os
 import tempfile
@@ -62,52 +63,62 @@ for _t in _numpy_scalar:
 
 
 class _Encoder:
+    __slots__ = ("pretty", "indent_level", "out")
+
     def __init__(self, pretty):
         self.pretty = pretty
         self.indent_level = 0
+        self.out = []
+
+    def get_output(self):
+        return "".join(self.out)
 
     def indent(self):
         return "    "*self.indent_level
 
     def encode_none(self, x):
-        return "null"
+        self.out.append("null")
 
     def encode_bool(self, x):
         if x:
-            return "true"
+            self.out.append("true")
         else:
-            return "false"
+            self.out.append("false")
 
     def encode_number(self, x):
-        return repr(x)
+        self.out.append(repr(x))
 
     def encode_str(self, x):
         # Do not use repr() for JSON compatibility.
-        return json.dumps(x)
+        self.out.append(json.dumps(x))
 
     def encode_bytes(self, x):
-        return repr(x)
+        self.out.append(repr(x))
+
+    def _encode_sequence(self, start, end, x):
+        self.out.append(start)
+        first = True
+        for item in x:
+            if not first:
+                self.out.append(", ")
+            first = False
+
+            self.encode(item)
+        self.out.append(end)
 
     def encode_tuple(self, x):
         if len(x) == 1:
-            return "(" + self.encode(x[0]) + ", )"
+            self.out.append("(")
+            self.encode(x[0])
+            self.out.append(", )")
         else:
-            r = "("
-            r += ", ".join([self.encode(item) for item in x])
-            r += ")"
-            return r
+            self._encode_sequence("(", ")", x)
 
     def encode_list(self, x):
-        r = "["
-        r += ", ".join([self.encode(item) for item in x])
-        r += "]"
-        return r
+        self._encode_sequence("[", "]", x)
 
     def encode_set(self, x):
-        r = "{"
-        r += ", ".join([self.encode(item) for item in x])
-        r += "}"
-        return r
+        self._encode_sequence("{", "}", x)
 
     def encode_dict(self, x):
         if self.pretty and all(k.__class__ == str for k in x.keys()):
@@ -115,64 +126,86 @@ class _Encoder:
         else:
             items = x.items
 
-        r = "{"
+        self.out.append("{")
         if not self.pretty or len(x) < 2:
-            r += ", ".join([self.encode(k) + ": " + self.encode(v)
-                           for k, v in items()])
-        else:
-            self.indent_level += 1
-            r += "\n"
             first = True
             for k, v in items():
                 if not first:
-                    r += ",\n"
+                    self.out.append(", ")
                 first = False
-                r += self.indent() + self.encode(k) + ": " + self.encode(v)
-            r += "\n"  # no ','
+
+                self.encode(k)
+                self.out.append(": ")
+                self.encode(v)
+        else:
+            self.indent_level += 1
+            self.out.append("\n")
+            indent = self.indent()
+            first = True
+            for k, v in items():
+                if not first:
+                    self.out.append(",\n")
+                first = False
+
+                self.out.append(indent)
+                self.encode(k)
+                self.out.append(": ")
+                self.encode(v)
+
+            self.out.append("\n")
+
             self.indent_level -= 1
-            r += self.indent()
-        r += "}"
-        return r
+            self.out.append(self.indent())
+
+        self.out.append("}")
 
     def encode_slice(self, x):
-        return repr(x)
+        self.out.append(repr(x))
 
     def encode_fraction(self, x):
-        return "Fraction({}, {})".format(self.encode(x.numerator),
-                                         self.encode(x.denominator))
+        self.out.append("Fraction(")
+        self.encode(x.numerator)
+        self.out.append(", ")
+        self.encode(x.denominator)
+        self.out.append(")")
 
     def encode_ordereddict(self, x):
-        return "OrderedDict(" + self.encode(list(x.items())) + ")"
+        self.out.append("OrderedDict(")
+        self.encode_list(x.items())
+        self.out.append(")")
 
     def encode_nparray(self, x):
         if numpy.ndim(x) > 0:
             x = numpy.ascontiguousarray(x)
-        r = "nparray("
-        r += self.encode(x.shape) + ", "
-        r += self.encode(x.dtype.str) + ", b\""
-        r += base64.b64encode(x.data).decode()
-        r += "\")"
-        return r
+        self.out.append("nparray(")
+        self.encode(x.shape)
+        self.out.append(", ")
+        self.encode(x.dtype.str)
+        self.out.append(", b\"")
+        self.out.append(base64.b64encode(x.data).decode())
+        self.out.append("\")")
 
     def encode_npscalar(self, x):
-        r = "npscalar("
-        r += self.encode(x.dtype.str) + ", b\""
-        r += base64.b64encode(x.data).decode()
-        r += "\")"
-        return r
+        self.out.append("npscalar(")
+        self.encode(x.dtype.str)
+        self.out.append(", b\"")
+        self.out.append(base64.b64encode(x.data).decode())
+        self.out.append("\")")
 
     def encode(self, x):
         ty = _encode_map.get(type(x), None)
         if ty is None:
             raise TypeError("`{!r}` ({}) is not PYON serializable"
                             .format(x, type(x)))
-        return getattr(self, "encode_" + ty)(x)
+        getattr(self, "encode_" + ty)(x)
 
 
 def encode(x, pretty=False):
     """Serializes a Python object and returns the corresponding string in
     Python syntax."""
-    return _Encoder(pretty).encode(x)
+    encoder = _Encoder(pretty)
+    encoder.encode(x)
+    return encoder.get_output()
 
 
 def _nparray(shape, dtype, data):
