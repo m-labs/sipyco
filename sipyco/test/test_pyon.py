@@ -19,6 +19,7 @@ _pyon_test_object = {
     1j: 1-9j,
     "q": np.complex128(1j),
     "od": OrderedDict(zip("abc", range(3))),
+    "unicode": "\u269B"
 }
 
 
