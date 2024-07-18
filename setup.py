@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-# Depends on numpy and optionally pybase64
+# optionally depends on pybase64
 
 setup(
     name="sipyco",
@@ -9,6 +9,9 @@ setup(
     url="https://m-labs.hk/artiq",
     description="Simple Python communications",
     license="LGPLv3+",
+    install_requires=[
+        "numpy",
+    ],
     packages=find_packages(),
     entry_points={
         "console_scripts": [
