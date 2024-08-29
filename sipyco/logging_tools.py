@@ -54,7 +54,7 @@ _name_to_level = {
 
 def parse_log_message(msg):
     lr = "|".join(_name_to_level.keys())
-    m = re.fullmatch('('+lr+')(<\d+>)?:([^:]*):(.*)', msg)
+    m = re.fullmatch('('+lr+')(<\\d+>)?:([^:]*):(.*)', msg)
     if m is None:
         return 0, logging.INFO, "print", msg
     level = _name_to_level[m.group(1)]
