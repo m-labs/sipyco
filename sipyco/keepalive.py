@@ -36,9 +36,10 @@ def set_keepalive(
     # some BSDs and Solaris.
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
-    if sys.platform.startswith("linux"):
+    if sys.platform.startswith("linux") or sys.platform.startswith("darwin"):
         if after_idle is not None:
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, after_idle)
+            idle_opt = socket.TCP_KEEPALIVE if sys.platform.startswith("darwin") else socket.TCP_KEEPIDLE
+            sock.setsockopt(socket.IPPROTO_TCP, idle_opt, after_idle)
         if interval is not None:
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, interval)
         if max_fails is not None:
