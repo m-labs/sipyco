@@ -7,6 +7,7 @@ import traceback
 import numpy as np  # Needed to use numpy in RPC call arguments on cmd line
 import pprint
 import inspect
+from .arguments import formatargspec
 
 from sipyco.pc_rpc import AutoTarget, Client
 
