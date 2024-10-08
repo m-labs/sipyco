@@ -516,9 +516,8 @@ class Server(_AsyncioServer):
             Any type annotations are converted to strings (for PYON serialization).
         """
         argspec_dict = dict(inspect.getfullargspec(function)._asdict())
-        # Fix issue #1186: PYON can't serialize type annotations.
-        if any(argspec_dict.get("annotations", {})):
-            argspec_dict["annotations"] = str(argspec_dict["annotations"])
+        if "annotations" in argspec_dict:
+            argspec_dict["annotations"] = {k: v.__name__ for k, v in argspec_dict["annotations"].items()}
         return argspec_dict, inspect.getdoc(function)
 
     async def _process_action(self, target, obj):
