@@ -8,6 +8,7 @@ import numpy as np  # Needed to use numpy in RPC call arguments on cmd line
 import pprint
 import inspect
 
+from sipyco.arguments import formatargspec
 from sipyco.pc_rpc import AutoTarget, Client
 
 
@@ -47,7 +48,7 @@ def list_methods(remote):
         print(doc["docstring"])
         print()
     for name, (argspec, docstring) in sorted(doc["methods"].items()):
-        print(name + inspect.formatargspec(**argspec))
+        print(name + formatargspec(**argspec))
         if docstring is not None:
             print(textwrap.indent(docstring, "    "))
         print()
