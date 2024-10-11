@@ -179,10 +179,11 @@ class SourceFilter:
 
 class LogForwarder(logging.Handler, TaskObject):
     def __init__(self, host, port, reconnect_timer=5.0, queue_size=1000,
-                 **kwargs):
+                 ssl_config=None, **kwargs):
         logging.Handler.__init__(self, **kwargs)
         self.host = host
         self.port = port
+        self.ssl_config = ssl_config
         self.setFormatter(MultilineFormatter())
         self._queue = asyncio.Queue(queue_size)
         self.reconnect_timer = reconnect_timer
@@ -192,10 +193,14 @@ class LogForwarder(logging.Handler, TaskObject):
 
     async def _do(self):
         reader = writer = None
+        ssl_context = None
+        if self.ssl_config is not None:
+            ssl_context = self.ssl_config.create_client_context()
         while True:
             try:
                 reader, writer = await keepalive.async_open_connection(self.host,
-                                                                       self.port)
+                                                                       self.port,
+                                                                       ssl=ssl_context)
                 writer.write(_init_string)
                 while True:
                     message = await self._queue.get() + "\n"
