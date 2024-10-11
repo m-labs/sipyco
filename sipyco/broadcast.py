@@ -15,9 +15,12 @@ class Receiver:
         self.notify_cbs = notify_cb
         self.disconnect_cb = disconnect_cb
 
-    async def connect(self, host, port):
+    async def connect(self, host, port, ssl_config=None):
+        ssl_context = None
+        if ssl_config is not None:
+            ssl_context = ssl_config.create_client_context()
         self.reader, self.writer = \
-            await keepalive.async_open_connection(host, port, limit=100 * 1024 * 1024)
+            await keepalive.async_open_connection(host, port, limit=100 * 1024 * 1024, ssl=ssl_context)
         try:
             self.writer.write(_init_string)
             self.writer.write((self.name + "\n").encode())
