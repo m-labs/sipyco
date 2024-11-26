@@ -1,7 +1,7 @@
 import asyncio
 
 from sipyco import keepalive, pyon
-from sipyco.asyncio_tools import AsyncioServer
+from sipyco.tools import AsyncioServer
 
 
 _init_string = b"ARTIQ broadcast\n"

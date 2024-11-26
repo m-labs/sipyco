@@ -18,7 +18,7 @@ from functools import partial
 import logging
 
 from sipyco import keepalive, pyon
-from sipyco.asyncio_tools import AsyncioServer
+from sipyco.tools import AsyncioServer
 
 
 logger = logging.getLogger(__name__)

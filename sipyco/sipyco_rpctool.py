@@ -9,6 +9,7 @@ import pprint
 
 from sipyco.arguments import formatargspec
 from sipyco.pc_rpc import AutoTarget, Client
+from sipyco.tools import SimpleSSLConfig
 
 
 def get_argparser():
@@ -18,6 +19,11 @@ def get_argparser():
                         help="hostname or IP of the controller to connect to")
     parser.add_argument("port", metavar="PORT", type=int,
                         help="TCP port to use to connect to the controller")
+    parser.add_argument("--ssl", nargs=3, metavar=('CERT', 'KEY', 'PEER'),
+                        help="Enable SSL authentication: "
+                             "CERT: client certificate file, "
+                             "KEY: client private key, "
+                             "PEER: server certificate to trust")
     subparsers = parser.add_subparsers(dest="action")
     subparsers.add_parser("list-targets", help="list existing targets")
     parser_list_methods = subparsers.add_parser("list-methods",
@@ -98,7 +104,11 @@ def main():
     if not args.action:
         args.target = None
 
-    remote = Client(args.server, args.port, None)
+    ssl_config = None
+    if args.ssl:
+        ssl_config = SimpleSSLConfig(*args.ssl)
+
+    remote = Client(args.server, args.port, None, None, ssl_config)
     targets, description = remote.get_rpc_id()
     if args.action != "list-targets":
         if not args.target:

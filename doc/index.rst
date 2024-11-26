@@ -46,10 +46,10 @@ API documentation
 .. automodule:: sipyco.common_args
     :members:
 
-:mod:`sipyco.asyncio_tools` module
+:mod:`sipyco.tools` module
 ----------------------------------
 
-.. automodule:: sipyco.asyncio_tools
+.. automodule:: sipyco.tools
     :members:
 
 :mod:`sipyco.logging_tools` module
@@ -65,7 +65,7 @@ Remote Procedure Call tool
 
 This tool is the preferred way of handling simple RPC servers.
 Instead of writing a client for simple cases, you can simply use this tool
-to call remote functions of an RPC server.
+to call remote functions of an RPC server. For secure connections, see `SSL Setup`_.
 
 * Listing existing targets
 
@@ -127,3 +127,54 @@ Command-line details:
 .. argparse::
    :ref: sipyco.sipyco_rpctool.get_argparser
    :prog: sipyco_rpctool
+
+
+SSL Setup
+=========
+
+SiPyCo supports SSL/TLS encryption with mutual authentication for secure communication, but it is disabled by default. To enable and use SSL, follow these steps:
+
+**Generate key and certificate:**
+
+Run the following command twice, once with server filenames (e.g., ``server.key``, ``server.pem``) and once with client filenames (e.g., ``client.key``, ``client.pem``):
+
+.. code-block:: bash
+
+   openssl req -x509 -newkey rsa -keyout <filename>.key -nodes -out <filename>.pem -sha256 -subj "/"
+
+.. note::
+    The ``-subj "/"`` parameter bypasses the interactive prompts for certificate information (country, organization, etc.) that OpenSSL normally requires.
+
+A single client certificate must be shared among multiple clients. This reduces certificate management overhead, as the server only needs to trust one client certificate. SiPyCo's SSL implementation is configured to authenticate based on certificates directly, rather than hostname verification, making this approach secure for trusted environments where certificate distribution is controlled.
+
+Enabling SSL
+------------
+
+To start with SSL enabled, the server requires its own key and certificate, as well as the certificate of a client to trust. Similarly, the client requires its own key and certificate, as well as the certificate of a server to trust.
+
+**For servers:**
+
+.. code-block:: python
+
+    from sipyco.pc_rpc import simple_server_loop
+    from sipyco.tools import SimpleSSLConfig
+
+
+    ssl_config = SimpleSSLConfig(local_cert="path/to/server.pem",
+                                 local_key="path/to/server.key",
+                                 peer_cert="path/to/client.pem")
+
+    simple_server_loop(targets, host, port, ssl_config=ssl_config)
+
+**For clients:**
+
+.. code-block:: python
+
+    from sipyco.tools import SimpleSSLConfig
+
+
+    ssl_config = SimpleSSLConfig(local_cert="path/to/client.pem",
+                                 local_key="path/to/client.key",
+                                 peer_cert="path/to/server.pem")
+
+    client = Client(host, port, ssl_config=ssl_config)

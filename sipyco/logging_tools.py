@@ -3,7 +3,7 @@ import logging
 import re
 
 from sipyco import keepalive
-from sipyco.asyncio_tools import TaskObject, AsyncioServer
+from sipyco.tools import TaskObject, AsyncioServer
 
 
 logging.TRACE = 5
