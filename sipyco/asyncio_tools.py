@@ -126,6 +126,7 @@ class SignalHandler:
     def setup(self):
         self.prev_sigint = signal.signal(signal.SIGINT, lambda sig, frame: None)
         self.prev_sigterm = signal.signal(signal.SIGTERM, lambda sig, frame: None)
+        self.prev_sighup = signal.signal(signal.SIGHUP, lambda sig, frame: None)
         self.rsock, self.wsock = socket.socketpair()
         self.rsock.setblocking(0)
         self.wsock.setblocking(0)
@@ -137,6 +138,7 @@ class SignalHandler:
         self.wsock.close()
         signal.signal(signal.SIGINT, self.prev_sigint)
         signal.signal(signal.SIGTERM, self.prev_sigterm)
+        signal.signal(signal.SIGHUP, self.prev_sighup)
 
     async def wait_terminate(self):
         loop = asyncio.get_event_loop()
@@ -149,4 +151,8 @@ class SignalHandler:
             elif signum == signal.SIGTERM:
                 print()
                 print("Caught SIGTERM, terminating...")
+                break
+            elif signum == signal.SIGHUP:
+                print()
+                print("Caught SIGHUP, terminating...")
                 break
