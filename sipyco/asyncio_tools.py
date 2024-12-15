@@ -122,11 +122,15 @@ def atexit_register_coroutine(coroutine, *, loop=None):
     atexit.register(lambda: loop.run_until_complete(coroutine()))
 
 
+HAS_SIGHUP = hasattr(signal, "SIGHUP")
+
+
 class SignalHandler:
     def setup(self):
         self.prev_sigint = signal.signal(signal.SIGINT, lambda sig, frame: None)
         self.prev_sigterm = signal.signal(signal.SIGTERM, lambda sig, frame: None)
-        self.prev_sighup = signal.signal(signal.SIGHUP, lambda sig, frame: None)
+        if HAS_SIGHUP:
+            self.prev_sighup = signal.signal(signal.SIGHUP, lambda sig, frame: None)
         self.rsock, self.wsock = socket.socketpair()
         self.rsock.setblocking(0)
         self.wsock.setblocking(0)
@@ -138,7 +142,8 @@ class SignalHandler:
         self.wsock.close()
         signal.signal(signal.SIGINT, self.prev_sigint)
         signal.signal(signal.SIGTERM, self.prev_sigterm)
-        signal.signal(signal.SIGHUP, self.prev_sighup)
+        if HAS_SIGHUP:
+            signal.signal(signal.SIGHUP, self.prev_sighup)
 
     async def wait_terminate(self):
         loop = asyncio.get_event_loop()
@@ -152,7 +157,7 @@ class SignalHandler:
                 print()
                 print("Caught SIGTERM, terminating...")
                 break
-            elif signum == signal.SIGHUP:
+            elif HAS_SIGHUP and signum == signal.SIGHUP:
                 print()
                 print("Caught SIGHUP, terminating...")
                 break
