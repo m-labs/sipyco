@@ -11,6 +11,7 @@
         version = "1.8";
         src = self;
         propagatedBuildInputs = with pkgs.python3Packages; [ pybase64 numpy ];
+        nativeCheckInputs = [ pkgs.openssl ];
         checkPhase = "python -m unittest discover sipyco.test";
       };
       sipyco-aarch64 = (with nixpkgs.legacyPackages.aarch64-linux; python3Packages.buildPythonPackage {

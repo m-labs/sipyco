@@ -1,7 +1,9 @@
 import unittest
 import asyncio
+import tempfile
 
 from sipyco import broadcast
+from sipyco.test.ssl_certs import create_ssl_certs, create_ssl_config
 
 
 test_address = "::1"
@@ -14,19 +16,28 @@ class BroadcastCase(unittest.TestCase):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.message_received = asyncio.Event()
+        self.cert_dir = None
 
-    async def _do_test_broadcast(self):
+    async def _do_test_broadcast(self, ssl=False):
         received_messages = []
 
         def notify_callback(message):
             received_messages.append(message)
             self.message_received.set()
 
+        server_config = None
+        client_config = None
+        if ssl:
+            self.cert_dir = tempfile.TemporaryDirectory()
+            certs = create_ssl_certs(self.cert_dir.name)
+            server_config = create_ssl_config("server", certs)
+            client_config = create_ssl_config("client", certs)
+
         broadcaster = broadcast.Broadcaster()
-        await broadcaster.start(test_address, test_port)
+        await broadcaster.start(test_address, test_port, server_config)
 
         receiver = broadcast.Receiver("test_channel", notify_callback)
-        await receiver.connect(test_address, test_port)
+        await receiver.connect(test_address, test_port, client_config)
 
         # Sleep to avoid race condition. If broadcast() runs before server
         # setup recipient's message queue, initial messages may be lost.
@@ -44,5 +55,10 @@ class BroadcastCase(unittest.TestCase):
     def test_broadcast(self):
         self.loop.run_until_complete(self._do_test_broadcast())
 
+    def test_broadcast_ssl(self):
+        self.loop.run_until_complete(self._do_test_broadcast(ssl=True))
+
     def tearDown(self):
+        if self.cert_dir is not None:
+            self.cert_dir.cleanup()
         self.loop.close()

@@ -1,8 +1,10 @@
 import unittest
 import asyncio
+import tempfile
 import numpy as np
 
 from sipyco import sync_struct
+from sipyco.test.ssl_certs import create_ssl_certs, create_ssl_config
 
 
 test_address = "::1"
@@ -47,18 +49,28 @@ class SyncStructCase(unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
+        self.cert_dir = None
 
-    async def _do_test_recv(self):
+    async def _do_test_recv(self, ssl=False):
         self.init_done = asyncio.Event()
         self.receiving_done = asyncio.Event()
 
+        server_config = None
+        client_config = None
+        if ssl:
+            self.cert_dir = tempfile.TemporaryDirectory()
+            certs = create_ssl_certs(self.cert_dir.name)
+            server_config = create_ssl_config("server", certs)
+            client_config = create_ssl_config("client", certs)
+
         test_dict = sync_struct.Notifier(dict())
         publisher = sync_struct.Publisher({"test": test_dict})
-        await publisher.start(test_address, test_port)
+
+        await publisher.start(test_address, test_port, server_config)
 
         subscriber = sync_struct.Subscriber("test", self.init_test_dict,
                                             self.notify)
-        await subscriber.connect(test_address, test_port)
+        await subscriber.connect(test_address, test_port, None, client_config)
 
         # Wait for the initial replication to be completed so we actually
         # exercise the various actions instead of sending just one init mod.
@@ -75,5 +87,10 @@ class SyncStructCase(unittest.TestCase):
     def test_recv(self):
         self.loop.run_until_complete(self._do_test_recv())
 
+    def test_recv_ssl(self):
+        self.loop.run_until_complete(self._do_test_recv(ssl=True))
+
     def tearDown(self):
+        if self.cert_dir is not None:
+            self.cert_dir.cleanup()
         self.loop.close()

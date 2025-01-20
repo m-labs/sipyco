@@ -1,8 +1,10 @@
 import asyncio
 import logging
 import unittest
+import tempfile
 
 from sipyco import logs
+from sipyco.test.ssl_certs import create_ssl_certs, create_ssl_config
 
 
 test_address = "::1"
@@ -19,6 +21,7 @@ class LoggingCase(unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
+        self.cert_dir = None
 
         self.client_logger = logging.getLogger("client_logger")
         self.client_logger.setLevel(logging.DEBUG)
@@ -38,13 +41,21 @@ class LoggingCase(unittest.TestCase):
         self.received_records.append(record)
         self.received_records_sem.release()
 
-    async def _do_test_logging(self):
+    async def _do_test_logging(self, ssl=False):
+        server_config = None
+        client_config = None
+        if ssl:
+            self.cert_dir = tempfile.TemporaryDirectory()
+            certs = create_ssl_certs(self.cert_dir.name)
+            server_config = create_ssl_config("server", certs)
+            client_config = create_ssl_config("client", certs)
+
         server = logs.Server()
-        await server.start(test_address, test_port)
+        await server.start(test_address, test_port, server_config)
 
         try:
             forwarder = logs.LogForwarder(
-                test_address, test_port, reconnect_timer=0.1)
+                test_address, test_port, reconnect_timer=0.1, ssl_config=client_config)
             forwarder.setFormatter(logs.MultilineFormatter())
 
             self.client_logger.addFilter(
@@ -77,6 +88,11 @@ class LoggingCase(unittest.TestCase):
     def test_logging(self):
         self.loop.run_until_complete(self._do_test_logging())
 
+    def test_logging_ssl(self):
+        self.loop.run_until_complete(self._do_test_logging(ssl=True))
+
     def tearDown(self):
+        if self.cert_dir is not None:
+            self.cert_dir.cleanup()
         self.fwd_logger.removeHandler(self.handler)
         self.loop.close()
