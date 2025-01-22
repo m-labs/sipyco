@@ -195,8 +195,11 @@ class _Encoder:
     def encode(self, x):
         ty = _encode_map.get(type(x), None)
         if ty is None:
-            raise TypeError("`{!r}` ({}) is not PYON serializable"
-                            .format(x, type(x)))
+            if isinstance(x, dict):
+                ty = "dict"
+            else:
+                raise TypeError("`{!r}` ({}) is not PYON serializable"
+                                .format(x, type(x)))
         getattr(self, "encode_" + ty)(x)
 
 
