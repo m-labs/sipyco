@@ -1,6 +1,6 @@
 # Example scripts for "asyncio"
 
-Modifying [artiq](https://github.com/m-labs/artiq) or using sipyco requires a sound understand of [asyncio](https://docs.python.org/3/library/asyncio.html). If you already know how asyncio works and how to use it, feel free to skip this directory.
+Modifying [artiq](https://github.com/m-labs/artiq) or using sipyco requires a sound understand of [asyncio](https://docs.python.org/3/library/asyncio.html). If you already have that, feel free to skip this directory.
 
 ### How to run?
 
