@@ -2,11 +2,11 @@
 
 Modifying [artiq](https://github.com/m-labs/artiq) or using sipyco even the tiniest bit requires a sound understand of [asyncio](https://docs.python.org/3/library/asyncio.html). If you already know how asyncio works and how to use it, feel free to skip this directory.
 
-### How-To: Run
+### How to run?
 
 Enter a subdirectory and follow the instructions.
 
-### How-To: Learn
+### How to learn?
 
 - Read an overview over concurrency, such as [https://realpython.com/python-concurrency/](https://realpython.com/python-concurrency/) (November 2024).
 - Afterwards, read something specific to asyncio such as [https://realpython.com/async-io-python/](https://realpython.com/async-io-python/) (January 2019).

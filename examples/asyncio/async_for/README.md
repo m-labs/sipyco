@@ -1,6 +1,6 @@
 # Example scripts with "async for"
 
-### How-To: Run
+### How to run?
 
 Open a terminal session and run `python async_for.py`.
 
