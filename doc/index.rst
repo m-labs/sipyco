@@ -133,4 +133,4 @@ Command-line details:
 Example scripts
 ===============
 
-Check out [sipyco/examples/](https://github.com/m-labs/sipyco/examples) for some beginner-friendly example scripts, which were contributed by users. Follow the READMEs.
+Check out `sipyco/examples/ <https://github.com/m-labs/sipyco/examples>`_ for some beginner-friendly example scripts, which were contributed by users. Follow the READMEs.
