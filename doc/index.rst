@@ -127,3 +127,10 @@ Command-line details:
 .. argparse::
    :ref: sipyco.sipyco_rpctool.get_argparser
    :prog: sipyco_rpctool
+
+
+
+Example scripts
+===============
+
+Check out [sipyco/examples/](https://github.com/m-labs/sipyco/examples) for some beginner-friendly example scripts, which were contributed by users. Follow the READMEs.
