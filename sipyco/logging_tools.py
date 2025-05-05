@@ -149,8 +149,9 @@ class Server(AsyncioServer):
                 else:
                     linesplit = line.split(":", maxsplit=1)
                     if len(linesplit) != 2:
+                        host = writer.get_extra_info("peername")
                         logger.warning("received improperly formatted message, "
-                                       "dropping connection")
+                                       "dropping connection to %s: '%s'", host, line)
                         return
                     source, remainder = linesplit
                     parser.line_input(remainder)
