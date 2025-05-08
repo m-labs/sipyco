@@ -20,7 +20,7 @@ def init_logger_from_args(args):
         level=logging.WARNING + args.quiet*10 - args.verbose*10)
 
 
-def simple_network_args(parser, default_port):
+def simple_network_args(parser, default_port, ssl=False):
     group = parser.add_argument_group("network server")
     group.add_argument(
         "--bind", default=[], action="append",
@@ -38,6 +38,14 @@ def simple_network_args(parser, default_port):
                  .format(purpose, default))
             group.add_argument("--port-" + name, default=default, type=int,
                                help=h)
+    if ssl:
+        group.add_argument(
+            "--ssl", nargs=3, metavar=('CERT', 'KEY', 'PEER'), default=None,
+            help="Enable SSL authentication: "
+                "CERT: server certificate file, "
+                "KEY: server private key, "
+                "PEER: client certificate to trust "
+                "(default: %(default)s)")
 
 
 def bind_address_from_args(args):
