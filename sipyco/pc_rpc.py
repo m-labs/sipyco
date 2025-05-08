@@ -60,7 +60,7 @@ def _socket_readline(socket, bufsize=4096):
     while buf.find("\n", offset) == -1:
         more = socket.recv(bufsize)
         if not more:
-            break
+            raise EOFError("Connection closed before a full line was received.")
         buf += more.decode()
         offset += len(more)
 
