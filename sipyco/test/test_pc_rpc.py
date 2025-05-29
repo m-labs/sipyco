@@ -88,7 +88,7 @@ class RPCCase(unittest.TestCase):
                 await remote.non_existing_method
             await remote.terminate()
         finally:
-            remote.close_rpc()
+            await remote.close_rpc()
 
     def _loop_asyncio_echo(self, target):
         loop = asyncio.new_event_loop()
