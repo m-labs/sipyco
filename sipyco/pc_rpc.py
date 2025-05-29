@@ -231,7 +231,7 @@ class AsyncioClient:
             if target_name is not None:
                 await self.select_rpc_target(target_name)
         except:
-            self.close_rpc()
+            await self.close_rpc()
             raise
 
     async def select_rpc_target(self, target_name):
@@ -257,13 +257,14 @@ class AsyncioClient:
         identification information of the server."""
         return (self.__target_names, self.__description)
 
-    def close_rpc(self):
+    async def close_rpc(self):
         """Closes the connection to the RPC server.
 
         No further method calls should be done after this method is called.
         """
         if self.__writer is not None:
             self.__writer.close()
+            await self.__writer.wait_closed()
         self.__reader = None
         self.__writer = None
         self.__target_names = None
