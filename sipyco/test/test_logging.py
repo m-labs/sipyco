@@ -2,7 +2,7 @@ import asyncio
 import logging
 import unittest
 
-from sipyco import logging_tools
+from sipyco import logs
 
 
 test_address = "::1"
@@ -23,14 +23,14 @@ class LoggingCase(unittest.TestCase):
         self.client_logger = logging.getLogger("client_logger")
         self.client_logger.setLevel(logging.DEBUG)
 
-        self.fwd_logger = logging_tools._fwd_logger
+        self.fwd_logger = logs._fwd_logger
         self.fwd_logger.setLevel(logging.DEBUG)
 
         self.received_records = []
         self.received_records_sem = asyncio.Semaphore(0)
 
         self.handler = logging.StreamHandler()
-        self.handler.setFormatter(logging_tools.MultilineFormatter())
+        self.handler.setFormatter(logs.MultilineFormatter())
         self.handler.emit = self.handle_record
         self.fwd_logger.addHandler(self.handler)
 
@@ -39,16 +39,16 @@ class LoggingCase(unittest.TestCase):
         self.received_records_sem.release()
 
     async def _do_test_logging(self):
-        server = logging_tools.Server()
+        server = logs.Server()
         await server.start(test_address, test_port)
 
         try:
-            forwarder = logging_tools.LogForwarder(
+            forwarder = logs.LogForwarder(
                 test_address, test_port, reconnect_timer=0.1)
-            forwarder.setFormatter(logging_tools.MultilineFormatter())
+            forwarder.setFormatter(logs.MultilineFormatter())
 
             self.client_logger.addFilter(
-                logging_tools.SourceFilter(logging.DEBUG, "test_client"))
+                logs.SourceFilter(logging.DEBUG, "test_client"))
             self.client_logger.addHandler(forwarder)
 
             forwarder_task = asyncio.create_task(forwarder._do())

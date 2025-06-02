@@ -52,10 +52,10 @@ API documentation
 .. automodule:: sipyco.tools
     :members:
 
-:mod:`sipyco.logging_tools` module
+:mod:`sipyco.logs` module
 ----------------------------------
 
-.. automodule:: sipyco.logging_tools
+.. automodule:: sipyco.logs
     :members:
 
 

@@ -1,6 +1,6 @@
 import logging
 
-from sipyco.logging_tools import multiline_log_config
+from sipyco.logs import multiline_log_config
 
 
 def verbosity_args(parser):
