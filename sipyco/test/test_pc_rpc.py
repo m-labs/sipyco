@@ -51,7 +51,7 @@ class RPCCase(unittest.TestCase):
             if die_using_sys_exit:
                 # If the server dies and just drops the connection, we
                 # expect a client-side error due to lack of data.
-                with self.assertRaises(SyntaxError):
+                with self.assertRaises(EOFError):
                     remote.raise_sys_exit()
             else:
                 remote.terminate()
