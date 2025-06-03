@@ -112,10 +112,10 @@ class Client:
     def __init__(self, host, port, target_name=AutoTarget,
                  timeout=None, ssl_config=None):
         self.__socket = socket.create_connection((host, port), timeout)
-        if ssl_config is not None:
-            ssl_context = ssl_config.create_client_context()
-            self.__socket = ssl_context.wrap_socket(self.__socket)
         try:
+            if ssl_config is not None:
+                ssl_context = ssl_config.create_client_context()
+                self.__socket = ssl_context.wrap_socket(self.__socket)
             self.__socket.sendall(_init_string)
 
             server_identification = self.__recv()
