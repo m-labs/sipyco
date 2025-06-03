@@ -24,6 +24,9 @@
           titlesec tabulary varwidth framed fancyvrb float wrapfig parskip
           upquote capt-of needspace etoolbox booktabs xcolor;
       };
+      sphinxDeps = with pkgs.python3Packages; [
+         sphinx sphinx_rtd_theme sphinx-argparse sphinxcontrib-wavedrom
+      ];
     in rec {
       packages.x86_64-linux = {
         inherit sipyco latex-sipyco-manual;
@@ -34,8 +37,7 @@
           src = self;
           buildInputs = [
             sipyco
-            pkgs.python3Packages.sphinx pkgs.python3Packages.sphinx_rtd_theme
-            pkgs.python3Packages.sphinx-argparse pkgs.python3Packages.sphinxcontrib-wavedrom
+            sphinxDeps
           ];
           buildPhase = ''
             export SOURCE_DATE_EPOCH=${builtins.toString self.sourceInfo.lastModified}
@@ -54,8 +56,7 @@
           src = self;
           buildInputs = [
             sipyco
-            pkgs.python3Packages.sphinx pkgs.python3Packages.sphinx_rtd_theme
-            pkgs.python3Packages.sphinx-argparse pkgs.python3Packages.sphinxcontrib-wavedrom
+            sphinxDeps
             latex-sipyco-manual
           ];
           buildPhase = ''
@@ -76,8 +77,7 @@
         name = "sipyco-dev-shell";
         buildInputs = [
           (pkgs.python3.withPackages(ps: with ps; [ pybase64 numpy ]))
-          pkgs.python3Packages.sphinx pkgs.python3Packages.sphinx_rtd_theme
-          pkgs.python3Packages.sphinx-argparse pkgs.python3Packages.sphinxcontrib-wavedrom
+          sphinxDeps
           latex-sipyco-manual
         ];
       };
