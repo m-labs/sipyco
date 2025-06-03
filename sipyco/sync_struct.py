@@ -333,8 +333,6 @@ class Publisher(AsyncioServer):
         except (ConnectionError, TimeoutError):
             # subscribers disconnecting are a normal occurrence
             pass
-        finally:
-            writer.close()
 
     def publish(self, notifier, mod):
         line = pyon.encode(mod) + "\n"

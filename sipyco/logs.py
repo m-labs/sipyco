@@ -158,8 +158,6 @@ class Server(AsyncioServer):
         except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
             # May happens on Windows when client disconnects
             pass
-        finally:
-            writer.close()
 
 
 class SourceFilter:

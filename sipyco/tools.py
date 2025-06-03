@@ -96,9 +96,16 @@ class AsyncioServer:
 
     def _handle_connection(self, reader, writer):
         keepalive.set_keepalive(writer.get_extra_info("socket"))
-        task = asyncio.ensure_future(self._handle_connection_cr(reader, writer))
+        task = asyncio.ensure_future(self._handle_connection_and_close(reader, writer))
         self._client_tasks.add(task)
         task.add_done_callback(self._client_done)
+
+    async def _handle_connection_and_close(self, reader, writer):
+        try:
+            await self._handle_connection_cr(reader, writer)
+        finally:
+            writer.close()
+            await writer.wait_closed()
 
     async def _handle_connection_cr(self, reader, writer):
         raise NotImplementedError
