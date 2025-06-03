@@ -95,8 +95,6 @@ class Broadcaster(AsyncioServer):
         except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
             # receivers disconnecting are a normal occurence
             pass
-        finally:
-            writer.close()
 
     def broadcast(self, name, obj):
         if name in self._recipients:
