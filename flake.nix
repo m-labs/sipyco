@@ -18,16 +18,6 @@
         inherit (sipyco) pname version src;
         propagatedBuildInputs = with python3Packages; [ pybase64 numpy ];
       });
-      sphinxcontrib-wavedrom = pkgs.python3Packages.buildPythonPackage rec {
-        pname = "sphinxcontrib-wavedrom";
-        version = "3.0.2";
-        src = pkgs.python3Packages.fetchPypi {
-          inherit pname version;
-          sha256 = "sha256-ukZd3ajt0Sx3LByof4R80S31F5t1yo+L8QUADrMMm2A=";
-        };
-        buildInputs = [ pkgs.python3Packages.setuptools_scm ];
-        propagatedBuildInputs = [ pkgs.nodejs pkgs.nodePackages.wavedrom-cli ] ++ (with pkgs.python3Packages; [ wavedrom sphinx xcffib cairosvg ]);
-      };
       latex-sipyco-manual = pkgs.texlive.combine {
         inherit (pkgs.texlive)
           scheme-basic latexmk cmap collection-fontsrecommended fncychap
@@ -36,7 +26,7 @@
       };
     in rec {
       packages.x86_64-linux = {
-        inherit sipyco sphinxcontrib-wavedrom latex-sipyco-manual;
+        inherit sipyco latex-sipyco-manual;
         default = sipyco;
         sipyco-manual-html = pkgs.stdenvNoCC.mkDerivation rec {
           name = "sipyco-manual-html-${version}";
@@ -45,7 +35,7 @@
           buildInputs = [
             sipyco
             pkgs.python3Packages.sphinx pkgs.python3Packages.sphinx_rtd_theme
-            pkgs.python3Packages.sphinx-argparse sphinxcontrib-wavedrom
+            pkgs.python3Packages.sphinx-argparse pkgs.python3Packages.sphinxcontrib-wavedrom
           ];
           buildPhase = ''
             export SOURCE_DATE_EPOCH=${builtins.toString self.sourceInfo.lastModified}
@@ -65,7 +55,7 @@
           buildInputs = [
             sipyco
             pkgs.python3Packages.sphinx pkgs.python3Packages.sphinx_rtd_theme
-            pkgs.python3Packages.sphinx-argparse sphinxcontrib-wavedrom
+            pkgs.python3Packages.sphinx-argparse pkgs.python3Packages.sphinxcontrib-wavedrom
             latex-sipyco-manual
           ];
           buildPhase = ''
@@ -87,7 +77,8 @@
         buildInputs = [
           (pkgs.python3.withPackages(ps: with ps; [ pybase64 numpy ]))
           pkgs.python3Packages.sphinx pkgs.python3Packages.sphinx_rtd_theme
-          pkgs.python3Packages.sphinx-argparse sphinxcontrib-wavedrom latex-sipyco-manual
+          pkgs.python3Packages.sphinx-argparse pkgs.python3Packages.sphinxcontrib-wavedrom
+          latex-sipyco-manual
         ];
       };
 
