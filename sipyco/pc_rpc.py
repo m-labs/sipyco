@@ -276,6 +276,8 @@ class AsyncioClient:
 
     async def __recv(self):
         line = await self.__reader.readline()
+        if not line:
+            raise EOFError("Connection closed unexpectedly")
         return pyon.decode(line.decode())
 
     async def __do_rpc(self, name, args, kwargs):
