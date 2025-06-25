@@ -10,7 +10,7 @@
     pkgs = import nixpkgs {system = "x86_64-linux";};
     sipyco = pkgs.python3Packages.buildPythonPackage {
       pname = "sipyco";
-      version = "1.8";
+      version = "1.9";
       src = self;
       propagatedBuildInputs = with pkgs.python3Packages; [pybase64 numpy];
       nativeCheckInputs = [pkgs.openssl];
