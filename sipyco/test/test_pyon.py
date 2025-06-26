@@ -2,6 +2,7 @@ import unittest
 import json
 from fractions import Fraction
 from collections import OrderedDict
+import tempfile
 
 import numpy as np
 
@@ -9,6 +10,9 @@ from sipyco import pyon
 
 
 _pyon_test_object = {
+    None: False,
+    True: b"bytes",
+    float("inf"): float("-inf"),
     (1, 2): [(3, 4.2), (2, )],
     "slice": slice(3),
     Fraction(3, 4): np.linspace(5, 10, 1),
@@ -18,8 +22,10 @@ _pyon_test_object = {
     "x": np.float16(9.0), "y": np.float32(9.0), "z": np.float64(9.0),
     1j: 1-9j,
     "q": np.complex128(1j),
-    "od": OrderedDict(zip("abc", range(3))),
-    "unicode": "\u269B"
+    "od": OrderedDict(zip(reversed(range(3)), "abc")),
+    "unicode": "\u269B",
+    "newline": "\n" """
+""",
 }
 
 
@@ -30,7 +36,8 @@ class PYON(unittest.TestCase):
                 self.assertEqual(pyon.decode(enc(_pyon_test_object)),
                                  _pyon_test_object)
                 # NaNs don't compare equal, so test separately.
-                assert np.isnan(pyon.decode(enc(np.nan)))
+                assert np.all(np.isnan(pyon.decode(enc(np.nan))))
+                assert np.all(np.isnan(pyon.decode(enc(float("nan")))))
 
     def test_encdec_array(self):
         orig = {k: (np.array(v), np.array([v]))
@@ -47,6 +54,16 @@ class PYON(unittest.TestCase):
         array = np.reshape(np.arange(6), (2, 3), order='F')
         np.testing.assert_array_equal(
             array, pyon.decode(pyon.encode(array)))
+
+    def test_file(self):
+        with tempfile.NamedTemporaryFile() as f:
+            pyon.store_file(f.name, _pyon_test_object)
+            readback = pyon.load_file(f.name)
+            self.assertEqual(readback, _pyon_test_object)
+
+    def test_single_line(self):
+        res = pyon.encode(_pyon_test_object, pretty=False)
+        self.assertEqual(len(res.splitlines()), 1)
 
 
 _json_test_object = {
