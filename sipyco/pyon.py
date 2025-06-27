@@ -48,6 +48,7 @@ def wrap(o):
     inner values in the `encode()` handler.
     """
     if isinstance(o, dict):
+        assert "__jsonclass__" not in o
         if not all(isinstance(k, str) for k in o):
             return Dict([[wrap(k), wrap(v)] for k, v in o.items()])
         else:
