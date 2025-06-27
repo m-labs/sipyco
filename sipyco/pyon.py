@@ -2,7 +2,7 @@
 This module provides serialization and deserialization functions for Python
 objects. Its main features are:
 
-* Human-readable format, fully compatible with JSON.
+* Human-readable format, fully compatible with JSON. PYON _is_ JSON.
 * Can be serialized on a single line (for framing), with only ASCII characters.
 * Supports all basic Python data structures: None, booleans, integers,
   floats, complex numbers, strings, tuples, lists, dictionaries, sets.
@@ -18,6 +18,7 @@ from collections import OrderedDict
 import json
 import os
 import tempfile
+import sys
 
 import numpy
 
@@ -25,6 +26,8 @@ try:
     import pybase64 as base64
 except ImportError:
     import base64
+
+_jsonclass = sys.intern("__jsonclass__")
 
 
 class _Dict:
@@ -47,7 +50,7 @@ def wrap(o):
     inner values in the `encode()` handler.
     """
     if isinstance(o, dict):
-        assert "__jsonclass__" not in o
+        assert _jsonclass not in o
         if not all(isinstance(k, str) for k in o):
             return _Dict([[wrap(k), wrap(v)] for k, v in o.items()])
         else:
@@ -190,16 +193,15 @@ register(
 assert set(name for name, _ in _encode_map.values()) == set(_decode_map.keys())
 
 
-class _Encoder(json.JSONEncoder):
-    def default(self, o):
-        try:
-            ty, enc = _encode_map[type(o)]
-        except KeyError:
-            raise TypeError("`{!r}` ({}) is not PYON serializable".format(o, type(o)))
-        return {"__jsonclass__": [ty, enc(o)]}
+def _encode_default(o):
+    try:
+        ty, enc = _encode_map[type(o)]
+    except KeyError:
+        raise TypeError("`{!r}` ({}) is not PYON serializable".format(o, type(o)))
+    return {_jsonclass: [ty, enc(o)]}
 
 
-def encode(x, pretty=False):
+def encode(x, pretty=False, **kw):
     """Serializes a Python object and returns the corresponding PYON string"""
     if pretty:
         indent = 4
@@ -207,23 +209,25 @@ def encode(x, pretty=False):
     else:
         indent = None
         separators = (",", ":")
-    return json.dumps(wrap(x), cls=_Encoder, indent=indent, separators=separators)
+    return json.dumps(
+        wrap(x), default=_encode_default, indent=indent, separators=separators, **kw
+    )
 
 
 def _object_hook(s):
     try:
-        dec, args = s["__jsonclass__"]
+        dec, args = s[_jsonclass]
     except KeyError:
         return s
     return _decode_map[dec](*args)
 
 
-def decode(s):
-    """Deserializes PYON string and returns the corresponding object"""
-    return json.loads(s, object_hook=_object_hook)
+def decode(s, **kw):
+    """Deserializes a PYON string and returns the corresponding object"""
+    return json.loads(s, object_hook=_object_hook, **kw)
 
 
-def store_file(filename, x):
+def store_file(filename, x, **kw):
     """Encodes a Python object and writes it to the specified file
 
     This makes a good attempt to make the switch as atomic as possible.
@@ -233,7 +237,7 @@ def store_file(filename, x):
     with tempfile.NamedTemporaryFile(
         "w", dir=directory, delete=False, encoding="utf-8"
     ) as f:
-        json.dump(wrap(x), f, cls=_Encoder, indent=4)
+        json.dump(wrap(x), f, default=_encode_default, indent=4, **kw)
         # make sure that all data is on disk
         # see http://stackoverflow.com/questions/7433057/is-rename-without-fsync-safe
         f.flush()

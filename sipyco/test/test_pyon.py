@@ -65,6 +65,15 @@ class PYON(unittest.TestCase):
         res = pyon.encode(_pyon_test_object, pretty=False)
         self.assertEqual(len(res.splitlines()), 1)
 
+    def test_jsonclass(self):
+        with self.assertRaises(AssertionError):
+            pyon.encode({"__jsonclass__": None})
+
+    def test_unsupported(self):
+        with self.assertRaises(TypeError):
+            pyon.encode(self)
+
+
 
 _json_test_object = {
     "a": "b",
@@ -81,6 +90,29 @@ class JSONPYON(unittest.TestCase):
                 self.assertEqual(dec(enc(_json_test_object)),
                                  _json_test_object)
 
+    def test_repr(self):
+        self.assertEqual(
+            pyon.encode(_json_test_object, pretty=False),
+            json.dumps(_json_test_object, separators=(",", ":"))
+        )
+        self.assertEqual(
+            pyon.encode(_json_test_object, pretty=True),
+            json.dumps(_json_test_object, indent=4)
+        )
+
+    def test_transparent(self):
+        j = json.loads(pyon.encode(_pyon_test_object))
+        p = pyon.decode(json.dumps(j))
+        self.assertEqual(_pyon_test_object, p)
+
+
+_v1 = {(1, 2j): Fraction(4, 1), }
+
+
+class V1(unittest.TestCase):
+    def test_decode(self):
+        self.assertEqual(_v1, pyon.decode_v1(str(_v1)))
+
 
 class Custom:
     def __init__(self, data):
@@ -93,7 +125,10 @@ class Custom:
 class CustomType(unittest.TestCase):
     def setUp(self):
         pyon.register(
-            [Custom], name="custom", encode=lambda x: [pyon.wrap(x.data)], decode=Custom
+            [Custom],
+            name="custom",
+            encode=lambda x: [pyon.wrap(x.data)],
+            decode=Custom
         )
 
     def tearDown(self):
@@ -112,7 +147,10 @@ class CustomType(unittest.TestCase):
     def test_unique_type(self):
         with self.assertRaises(AssertionError):
             pyon.register(
-                [Custom], name="other", encode=lambda: None, decode=lambda: None
+                [Custom],
+                name="other",
+                encode=lambda: None,
+                decode=lambda: None
             )
 
     def test_unique_name(self):
