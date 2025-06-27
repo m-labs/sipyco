@@ -228,12 +228,19 @@ def decode(s):
 
 
 def store_file(filename, x):
-    """Encodes a Python object and writes it to the specified file."""
+    """Encodes a Python object and writes it to the specified file.
+
+    The directory of the output must be writable.
+    """
     directory = os.path.abspath(os.path.dirname(filename))
     with tempfile.NamedTemporaryFile(
         "w", dir=directory, delete=False, encoding="utf-8"
     ) as f:
         json.dump(wrap(x), f, cls=_Encoder, indent=4)
+        # make sure that all data is on disk
+        # see http://stackoverflow.com/questions/7433057/is-rename-without-fsync-safe
+        f.flush()
+        os.fsync(f.fileno())
         tmpname = f.name
     os.replace(tmpname, filename)
 
