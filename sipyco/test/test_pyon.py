@@ -80,3 +80,54 @@ class JSONPYON(unittest.TestCase):
             for dec in pyon.decode, json.loads:
                 self.assertEqual(dec(enc(_json_test_object)),
                                  _json_test_object)
+
+
+class Custom:
+    def __init__(self, data):
+        self.data = data
+
+    def __eq__(self, other):
+        return other.data == self.data
+
+
+class CustomType(unittest.TestCase):
+    def setUp(self):
+        pyon.register(
+            [Custom], name="custom", encode=lambda x: [pyon.wrap(x.data)], decode=Custom
+        )
+
+    def tearDown(self):
+        try:
+            pyon.deregister([Custom], "custom")
+        except:
+            pass
+
+    def test_custom(self):
+        o = {
+            "py": Custom(_pyon_test_object),
+            1: (Custom(_json_test_object),),
+        }
+        self.assertEqual(o, pyon.decode(pyon.encode(o)))
+
+    def test_unique_type(self):
+        with self.assertRaises(AssertionError):
+            pyon.register(
+                [Custom], name="other", encode=lambda: None, decode=lambda: None
+            )
+
+    def test_unique_name(self):
+        with self.assertRaises(AssertionError):
+            pyon.register(
+                [None],
+                name="custom",
+                encode=lambda: None,
+                decode=lambda: None,
+            )
+
+    def test_common_name(self):
+        with self.assertRaises(AssertionError):
+            pyon.deregister([Custom, set], "custom")
+
+    def test_not_registered(self):
+        with self.assertRaises(KeyError):
+            pyon.deregister([None], "other")
