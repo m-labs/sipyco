@@ -6,7 +6,7 @@ objects. Its main features are:
 * Can be serialized on a single line (for framing), with only ASCII characters.
 * Supports all basic Python data structures: None, booleans, integers,
   floats, complex numbers, strings, tuples, lists, dictionaries, sets.
-* Type fidelity: Data types are accurately reconstructed and decode(encode())
+* Type fidelity: values are accurately reconstructed and decode(encode())
   round trips maintain types. Tuples do not become lists, and dictionary keys
   are not turned into strings.
 * Supports Numpy arrays and scalars. (Converted to be C-contiguous as required.)
@@ -27,34 +27,33 @@ except ImportError:
     import base64
 
 
-class Dict:
+class _Dict:
     def __init__(self, data):
         self.data = data
 
 
-class Tuple:
+class _Tuple:
     def __init__(self, data):
         self.data = data
 
 
 def wrap(o):
-    """Wrap certain Python types to prevent coercion by `json`.
+    """Wrap certain Python types to prevent coercion by `json`
 
     This recursively walks the three container types known to JSON (dict, list, tuple)
-    and wraps tuples in the custom `Tuple` type and dicts with non-str keys in the
-    custom `Dict` type.
+    and wraps dicts with non-str keys and tuples.
 
-    If you implement PYON for a custom type with `register_type(), use this on your
+    If you implement PYON for a custom type, use this on your
     inner values in the `encode()` handler.
     """
     if isinstance(o, dict):
         assert "__jsonclass__" not in o
         if not all(isinstance(k, str) for k in o):
-            return Dict([[wrap(k), wrap(v)] for k, v in o.items()])
+            return _Dict([[wrap(k), wrap(v)] for k, v in o.items()])
         else:
             return {k: wrap(v) for k, v in o.items()}
     elif isinstance(o, tuple):
-        return Tuple([wrap(v) for v in o])
+        return _Tuple([wrap(v) for v in o])
     elif isinstance(o, list):
         return [wrap(v) for v in o]
     else:
@@ -66,20 +65,20 @@ _decode_map = {}
 
 
 def register(types, *, name, encode, decode):
-    """Register custom Python types for encoding and decoding
+    """Register custom types for PYON encoding and decoding
 
     Args:
-        types (iterable of types): Types to support by the encoder/decoder pair.
-        name (str): Unique name to hook the decoder.
+        types (iterable of types): Types supported by the encode/decode pair.
+        name (str): Unique name to mark the types and hook the decoder.
         encode (callable): Convert a value to arguments.
-            Called with of a type from `types`.
+            Called with a value of a type from `types`.
             Returns a list of PYON-encodable arguments for `decode()`.
             Use `wrap()` to prevent coercion of tuples and non-str dicts.
         decode (callable): Convert arguments to a value.
             Called with the PYON-decoded arguments from `encode()`.
             Returns a value of a type from `types`.
     """
-    assert all(t not in _encode_map for t in types)
+    assert not any(t in _encode_map for t in types)
     assert name not in _decode_map
     for t in types:
         _encode_map[t] = name, encode
@@ -95,8 +94,8 @@ def deregister(types, name):
 
 
 # Custom wrapper types to prevent coercion
-register([Tuple], name="tuple", encode=lambda x: [x.data], decode=tuple)
-register([Dict], name="dict", encode=lambda x: [x.data], decode=dict)
+register([_Tuple], name="tuple", encode=lambda x: [x.data], decode=tuple)
+register([_Dict], name="dict", encode=lambda x: [x.data], decode=dict)
 
 # Additional PYON-supported types
 register([complex], name="complex", encode=lambda x: [x.real, x.imag], decode=complex)
@@ -201,8 +200,7 @@ class _Encoder(json.JSONEncoder):
 
 
 def encode(x, pretty=False):
-    """Serializes a Python object and returns the corresponding string in
-    PYON syntax."""
+    """Serializes a Python object and returns the corresponding PYON string"""
     if pretty:
         indent = 4
         separators = None
@@ -221,17 +219,15 @@ def _object_hook(s):
 
 
 def decode(s):
-    """
-    Parses a PYON string, reconstructs the corresponding
-    object, and returns it.
-    """
+    """Deserializes PYON string and returns the corresponding object"""
     return json.loads(s, object_hook=_object_hook)
 
 
 def store_file(filename, x):
-    """Encodes a Python object and writes it to the specified file.
+    """Encodes a Python object and writes it to the specified file
 
-    The directory of the output must be writable.
+    This makes a good attempt to make the switch as atomic as possible.
+    The directory containing `filename` must be writable.
     """
     directory = os.path.abspath(os.path.dirname(filename))
     with tempfile.NamedTemporaryFile(
@@ -247,7 +243,7 @@ def store_file(filename, x):
 
 
 def load_file(filename):
-    """Parses the specified file and returns the decoded Python object."""
+    """Decodes a Python object from a file"""
     with open(filename, "r", encoding="utf-8") as f:
         return json.load(f, object_hook=_object_hook)
 
@@ -269,11 +265,11 @@ _eval_dict = {
 
 def decode_v1(s):
     """
-    Parses a string in the Python syntax, reconstructs the corresponding
-    object, and returns it.
+    Deserializes a PYON v1 string and returns the reconstructed object
+
     **Shouldn't** be used with untrusted inputs, as it can cause vulnerability against injection attacks.
 
-    This is a convenience function to convert existing v1 PYON to JSON compliant v2 PYON.
+    This is a convenience function to convert existing PYON v1 to JSON compliant PYON v2.
     """
     return eval(s, _eval_dict, {})
 
@@ -283,7 +279,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description="""
-Convert a v1 PYON file to JSON compliant v2 PYON in place.
+Convert a PYON v1 file to JSON compliant PYON v2 in place.
 
 A backup of the input file is kept with the `_v1` extension.
 """.strip()
@@ -292,6 +288,6 @@ A backup of the input file is kept with the `_v1` extension.
     args = parser.parse_args()
     obj = decode_v1(open(args.file, "r", encoding="utf-8").read())
     backup = f"{args.file}_v1"
-    assert not os.path.exists(backup), "Backup file already exists. Aborting"
+    assert not os.path.exists(backup), "Backup file already exists. Aborting."
     os.replace(args.file, backup)
     store_file(args.file, obj)
