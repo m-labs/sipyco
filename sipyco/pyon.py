@@ -114,13 +114,13 @@ register(
 )
 register(
     [Fraction],
-    name="fraction",
+    name="Fraction",
     encode=lambda x: [x.numerator, x.denominator],
     decode=Fraction,
 )
 register(
     [OrderedDict],
-    name="ordered_dict",
+    name="OrderedDict",
     encode=lambda x: [[[wrap(k), wrap(v)] for k, v in x.items()]],
     decode=OrderedDict,
 )
@@ -249,3 +249,48 @@ def load_file(filename):
     """Parses the specified file and returns the decoded Python object."""
     with open(filename, "r", encoding="utf-8") as f:
         return json.load(f, object_hook=_object_hook)
+
+
+_eval_dict = {
+    "__builtins__": {},
+    "null": None,
+    "false": False,
+    "true": True,
+    "inf": numpy.inf,
+    "slice": slice,
+    "nan": numpy.nan,
+    "Fraction": Fraction,
+    "OrderedDict": OrderedDict,
+    "nparray": _decode_nparray,
+    "npscalar": _decode_npscalar,
+}
+
+
+def decode_v1(s):
+    """
+    Parses a string in the Python syntax, reconstructs the corresponding
+    object, and returns it.
+    **Shouldn't** be used with untrusted inputs, as it can cause vulnerability against injection attacks.
+
+    This is a convenience function to convert existing v1 PYON to JSON compliant v2 PYON.
+    """
+    return eval(s, _eval_dict, {})
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="""
+Convert a v1 PYON file to JSON compliant v2 PYON in place.
+
+A backup of the input file is kept with the `_v1` extension.
+""".strip()
+    )
+    parser.add_argument("file")
+    args = parser.parse_args()
+    obj = decode_v1(open(args.file, "r", encoding="utf-8").read())
+    backup = f"{args.file}_v1"
+    assert not os.path.exists(backup), "Backup file already exists. Aborting"
+    os.replace(args.file, backup)
+    store_file(args.file, obj)
