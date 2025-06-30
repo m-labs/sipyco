@@ -149,7 +149,7 @@ register(
 )
 
 
-_np_types = {
+_numpy_scalar = {
     "bool",
     "bytes_",
     "str_",
@@ -183,7 +183,7 @@ def _decode_npscalar(dtype, data):
 
 
 register(
-    [getattr(numpy, t) for t in _np_types],
+    [getattr(numpy, t) for t in _numpy_scalar],
     name="npscalar",
     encode=_encode_npscalar,
     decode=_decode_npscalar,
@@ -246,10 +246,10 @@ def store_file(filename, x, **kw):
     os.replace(tmpname, filename)
 
 
-def load_file(filename):
+def load_file(filename, **kw):
     """Decodes a Python object from a file"""
     with open(filename, "r", encoding="utf-8") as f:
-        return json.load(f, object_hook=_object_hook)
+        return json.load(f, object_hook=_object_hook, **kw)
 
 
 _eval_dict = {
