@@ -195,10 +195,10 @@ assert set(name for name, _ in _encode_map.values()) == set(_decode_map.keys())
 
 def _encode_default(o):
     try:
-        ty, enc = _encode_map[type(o)]
+        name, encode = _encode_map[type(o)]
     except KeyError:
         raise TypeError("`{!r}` ({}) is not PYON serializable".format(o, type(o)))
-    return {_jsonclass: [ty, enc(o)]}
+    return {_jsonclass: [name, encode(o)]}
 
 
 def encode(x, pretty=False, **kw):
@@ -216,10 +216,14 @@ def encode(x, pretty=False, **kw):
 
 def _object_hook(s):
     try:
-        dec, args = s[_jsonclass]
+        name, args = s[_jsonclass]
     except KeyError:
         return s
-    return _decode_map[dec](*args)
+    try:
+        decode = _decode_map[name]
+    except KeyError:
+        raise TypeError("`{}` is not PYON serializable".format(name))
+    return decode(*args)
 
 
 def decode(s, **kw):

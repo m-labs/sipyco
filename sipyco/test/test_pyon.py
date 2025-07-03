@@ -72,7 +72,8 @@ class PYON(unittest.TestCase):
     def test_unsupported(self):
         with self.assertRaises(TypeError):
             pyon.encode(self)
-
+        with self.assertRaises(TypeError):
+            pyon.decode("{\"__jsonclass__\": [\"foo\", []]}")
 
 
 _json_test_object = {
@@ -106,12 +107,12 @@ class JSONPYON(unittest.TestCase):
         self.assertEqual(_pyon_test_object, p)
 
 
-_v1 = {(1, 2j): Fraction(4, 1), }
-
-
 class V1(unittest.TestCase):
     def test_decode(self):
-        self.assertEqual(_v1, pyon.decode_v1(str(_v1)))
+        x = {
+            (1, 2j): Fraction(4, 1),
+        }
+        self.assertEqual(x, pyon.decode_v1(str(x)))
 
 
 class Custom:
@@ -125,10 +126,7 @@ class Custom:
 class CustomType(unittest.TestCase):
     def setUp(self):
         pyon.register(
-            [Custom],
-            name="custom",
-            encode=lambda x: [pyon.wrap(x.data)],
-            decode=Custom
+            [Custom], name="custom", encode=lambda x: [pyon.wrap(x.data)], decode=Custom
         )
 
     def tearDown(self):
@@ -147,10 +145,7 @@ class CustomType(unittest.TestCase):
     def test_unique_type(self):
         with self.assertRaises(AssertionError):
             pyon.register(
-                [Custom],
-                name="other",
-                encode=lambda: None,
-                decode=lambda: None
+                [Custom], name="other", encode=lambda: None, decode=lambda: None
             )
 
     def test_unique_name(self):
@@ -169,3 +164,19 @@ class CustomType(unittest.TestCase):
     def test_not_registered(self):
         with self.assertRaises(KeyError):
             pyon.deregister([None], "other")
+
+
+class NpScalarTypes(unittest.TestCase):
+    def test(self):
+        for t in pyon._numpy_scalar:
+            if t == "datetime64":
+                v = 0, "s"  # otherwise not-a-date
+            elif t == "bytes_":
+                v = (b"1",)  # numpy doesn't support zero-length bytes
+            else:
+                v = (0,)
+            v = getattr(np, t)(*v)
+            with self.subTest(t):
+                e = pyon.encode(v)
+                d = pyon.decode(e)
+                self.assertEqual(d, v)
