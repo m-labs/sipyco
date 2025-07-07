@@ -2,7 +2,7 @@
 This module provides serialization and deserialization functions for Python
 objects. Its main features are:
 
-* Human-readable format, fully compatible with JSON. PYON _is_ JSON.
+* Human-readable format, fully compatible with JSON: PYON _is_ JSON.
 * Can be serialized on a single line (for framing), with only ASCII characters.
 * Supports all basic Python data structures: None, booleans, integers,
   floats, complex numbers, strings, tuples, lists, dictionaries, sets.
@@ -46,7 +46,7 @@ def wrap(o):
     This recursively walks the three container types known to JSON (dict, list, tuple)
     and wraps dicts with non-str keys and tuples.
 
-    If you implement PYON for a custom type, use this on your
+    If you implement PYON for a custom type you may use this on your
     inner values in the `encode()` handler.
     """
     if isinstance(o, dict):
@@ -55,10 +55,10 @@ def wrap(o):
             return _Dict([[wrap(k), wrap(v)] for k, v in o.items()])
         else:
             return {k: wrap(v) for k, v in o.items()}
-    elif isinstance(o, tuple):
-        return _Tuple([wrap(v) for v in o])
     elif isinstance(o, list):
         return [wrap(v) for v in o]
+    elif isinstance(o, tuple):
+        return _Tuple([wrap(v) for v in o])
     else:
         return o
 
@@ -138,7 +138,8 @@ def _encode_nparray(x):
 
 
 def _decode_nparray(shape, dtype, data):
-    return numpy.frombuffer(base64.b64decode(data), dtype).copy().reshape(shape)
+    # Copy to make it mutable and aligned
+    return numpy.frombuffer(base64.b64decode(data), dtype).reshape(shape, copy=True)
 
 
 register(
@@ -197,7 +198,9 @@ def _encode_default(o):
     try:
         name, encode = _encode_map[type(o)]
     except KeyError:
-        raise TypeError("`{!r}` ({}) is not PYON serializable".format(o, type(o)))
+        raise TypeError(
+            f"`{o!r}`: `{o.__class__.__name__}` is not a registered PYON type"
+        )
     return {_jsonclass: [name, encode(o)]}
 
 
@@ -222,7 +225,7 @@ def _object_hook(s):
     try:
         decode = _decode_map[name]
     except KeyError:
-        raise TypeError("`{}` is not PYON serializable".format(name))
+        raise TypeError(f"`{name}` is not a registered PYON type")
     return decode(*args)
 
 
@@ -256,7 +259,7 @@ def load_file(filename, **kw):
         return json.load(f, object_hook=_object_hook, **kw)
 
 
-_eval_dict = {
+_v1_eval_dict = {
     "__builtins__": {},
     "null": None,
     "false": False,
@@ -276,10 +279,8 @@ def decode_v1(s):
     Deserializes a PYON v1 string and returns the reconstructed object
 
     **Shouldn't** be used with untrusted inputs, as it can cause vulnerability against injection attacks.
-
-    This is a convenience function to convert existing PYON v1 to JSON compliant PYON v2.
     """
-    return eval(s, _eval_dict, {})
+    return eval(s, _v1_eval_dict, {})
 
 
 if __name__ == "__main__":
@@ -296,6 +297,7 @@ A backup of the input file is kept with the `_v1` extension.
     args = parser.parse_args()
     obj = decode_v1(open(args.file, "r", encoding="utf-8").read())
     backup = f"{args.file}_v1"
-    assert not os.path.exists(backup), "Backup file already exists. Aborting."
+    if os.path.exists(backup):
+        raise FileExistsError(f"Backup `{backup}` already exists. Aborting.")
     os.replace(args.file, backup)
     store_file(args.file, obj)

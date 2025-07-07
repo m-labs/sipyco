@@ -75,6 +75,20 @@ class PYON(unittest.TestCase):
         with self.assertRaises(TypeError):
             pyon.decode("{\"__jsonclass__\": [\"foo\", []]}")
 
+    def test_npscalars(self):
+        for t in pyon._numpy_scalar:
+            if t == "datetime64":
+                v = 0, "s"  # otherwise not-a-date
+            elif t == "bytes_":
+                v = (b"1",)  # can't frombuffer zero-size types
+            else:
+                v = (0,)
+            v = getattr(np, t)(*v)
+            with self.subTest(t):
+                e = pyon.encode(v)
+                d = pyon.decode(e)
+                self.assertEqual(d, v)
+
 
 _json_test_object = {
     "a": "b",
@@ -164,19 +178,3 @@ class CustomType(unittest.TestCase):
     def test_not_registered(self):
         with self.assertRaises(KeyError):
             pyon.deregister([None], "other")
-
-
-class NpScalarTypes(unittest.TestCase):
-    def test(self):
-        for t in pyon._numpy_scalar:
-            if t == "datetime64":
-                v = 0, "s"  # otherwise not-a-date
-            elif t == "bytes_":
-                v = (b"1",)  # numpy doesn't support zero-length bytes
-            else:
-                v = (0,)
-            v = getattr(np, t)(*v)
-            with self.subTest(t):
-                e = pyon.encode(v)
-                d = pyon.decode(e)
-                self.assertEqual(d, v)
