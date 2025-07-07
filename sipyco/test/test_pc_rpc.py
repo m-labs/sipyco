@@ -59,6 +59,8 @@ class RPCCase(unittest.TestCase):
             self.assertEqual(test_object, test_object_back)
             test_object_back = remote.async_echo(test_object)
             self.assertEqual(test_object, test_object_back)
+            with self.assertRaises(TypeError):
+                remote.return_unserializable()
             with self.assertRaises(AttributeError):
                 remote.non_existing_method
             if die_using_sys_exit:
