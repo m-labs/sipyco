@@ -87,8 +87,8 @@ class Client:
     free resources properly after initialization completes successfully.
 
     The ``pyon_v2`` (PYON v2 encoding) feature is supported and selected
-    when offered by the server. Future versions of the clients will require
-    the ``pyon_v2`` feature.
+    when offered by the server. Future releases of ``Client`` will require
+    the server to offer ``pyon_v2``.
 
     :param host: Identifier of the server. The string can represent a
         hostname or a IPv4 or IPv6 address (see
@@ -121,15 +121,17 @@ class Client:
                 ssl_context = ssl_config.create_client_context()
                 self.__socket = ssl_context.wrap_socket(self.__socket)
             self.__socket.sendall(_init_string)
-            self.__features = ""
-            self.__encode = pyon_v1.encode
-            self.__decode = pyon_v1.decode
+            self.__decode = pyon.decode
             server_identification = self.__recv()
             features = server_identification.get("features", [])
+            self.__features = ""
             if "pyon_v2" in features:
                self.__features += " pyon_v2"
                self.__encode = pyon.encode
                self.__decode = pyon.decode
+            else:
+                self.__encode = pyon_v1.encode
+                self.__decode = pyon_v1.decode
             self.__target_names = server_identification["targets"]
             self.__description = server_identification["description"]
             self.__selected_target = None
@@ -234,15 +236,17 @@ class AsyncioClient:
             await keepalive.async_open_connection(host, port, ssl=ssl_context, limit=100 * 1024 * 1024)
         try:
             self.__writer.write(_init_string)
-            self.__features = ""
-            self.__encode = pyon_v1.encode
-            self.__decode = pyon_v1.decode
+            self.__decode = pyon.decode
             server_identification = await self.__recv()
             features = server_identification.get("features", [])
+            self.__features = ""
             if "pyon_v2" in features:
                 self.__features += " pyon_v2"
                 self.__encode = pyon.encode
                 self.__decode = pyon.decode
+            else:
+                self.__encode = pyon_v1.encode
+                self.__decode = pyon_v1.decode
             self.__target_names = server_identification["targets"]
             self.__description = server_identification["description"]
             self.__selected_target = None
@@ -375,15 +379,17 @@ class BestEffortClient:
             ssl_context = self.__ssl_config.create_client_context()
             self.__socket = ssl_context.wrap_socket(self.__socket)
         self.__socket.sendall(_init_string)
-        self.__features = ""
-        self.__encode = pyon_v1.encode
-        self.__decode = pyon_v1.decode
+        self.__decode = pyon.decode
         server_identification = self.__recv()
         features = server_identification.get("features", [])
+        self.__features = ""
         if "pyon_v2" in features:
             self.__features += " pyon_v2"
             self.__encode = pyon.encode
             self.__decode = pyon.decode
+        else:
+            self.__encode = pyon_v1.encode
+            self.__decode = pyon_v1.decode
         target_name = _validate_target_name(self.__target_name,
                                             server_identification["targets"])
         self.__socket.sendall((target_name + self.__features + "\n").encode())
@@ -520,8 +526,8 @@ class Server(_AsyncioServer):
     sequentially.
 
     The ``pyon_v2`` (PYON v2 encoding) feature is supported and offered to
-    the client. Future versions of ``Server`` will require the ``pyon_v2``
-    feature.
+    the client. Future releases of ``Server`` will require clients to select
+    ``pyon_v2``.
 
     :param targets: A dictionary of objects providing the RPC methods to be
         exposed to the client. Keys are names identifying each object.
@@ -536,14 +542,14 @@ class Server(_AsyncioServer):
         methods.
     """
 
-    def __init__(self, targets, description="", builtin_terminate=False,
+    def __init__(self, targets, description=None, builtin_terminate=False,
                  allow_parallel=False):
         _AsyncioServer.__init__(self)
         if any(" " in name for name in targets):
-            raise ValueError("whitespace in target name")
+            raise ValueError("target names must not contain whitespace")
         self.targets = targets
-        if not isinstance(description, str):
-            raise ValueError("description must be a `str`")
+        if not (description is None or isinstance(description, str)):
+            raise ValueError("description must be `None` or `str`")
         self.description = description
         self.builtin_terminate = builtin_terminate
         if builtin_terminate:
@@ -645,15 +651,14 @@ class Server(_AsyncioServer):
             if line != _init_string:
                 return
 
-            # For sipyco v2 and future servers this is encodable and decodable as
-            # pure JSON (and PYON v2) or PYON v1.
-            # For sipyco v1 servers it's PYON v1 if description == None.
-            obj = {
+            # `server_identification` is always (past, present, and future)
+            # encodable and decodable as pure JSON and thus both PYON v2 and PYON v1.
+            server_identification = {
                 "targets": sorted(self.targets.keys()),
                 "description": self.description,
                 "features": ["pyon_v2"],
             }
-            line = pyon.encode(obj) + "\n"
+            line = pyon.encode(server_identification) + "\n"
             writer.write(line.encode())
             line = await reader.readline()
             if not line:
