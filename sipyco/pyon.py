@@ -6,7 +6,7 @@ objects. Its main features are:
 * Can be serialized on a single line (for framing), with only ASCII characters.
 * Supports all basic Python data structures: None, booleans, integers,
   floats, complex numbers, strings, tuples, lists, dictionaries, sets.
-* Type fidelity: values are accurately reconstructed and decode(encode())
+* Type fidelity: values are accurately reconstructed and ``decode(encode())``
   round trips maintain types. Tuples do not become lists, and dictionary keys
   are not turned into strings.
 * Supports Numpy arrays and scalars. (Converted to be C-contiguous as required.)
@@ -41,13 +41,14 @@ class _Tuple:
 
 
 def wrap(o):
-    """Wrap certain Python types to prevent coercion by `json`
+    """Wrap certain Python types to prevent coercion by ``json``
 
     This recursively walks the three container types known to JSON (dict, list, tuple)
-    and wraps dicts with non-str keys and tuples.
+    and wraps dicts with non-str keys and tuples in custom types to prevent conversion
+    of dict keys to str and tuples to lists by ``json.dump()``.
 
     If you implement PYON for a custom type you may use this on your
-    inner values in the `encode()` handler.
+    inner values in the ``encode()`` handler.
     """
     if isinstance(o, dict):
         assert _jsonclass not in o
@@ -70,16 +71,15 @@ _decode_map = {}
 def register(types, *, name, encode, decode):
     """Register custom types for PYON encoding and decoding
 
-    Args:
-        types (iterable of types): Types supported by the encode/decode pair.
-        name (str): Unique name to mark the types and hook the decoder.
-        encode (callable): Convert a value to arguments.
-            Called with a value of a type from `types`.
-            Returns a list of PYON-encodable arguments for `decode()`.
-            Use `wrap()` to prevent coercion of tuples and non-str dicts.
-        decode (callable): Convert arguments to a value.
-            Called with the PYON-decoded arguments from `encode()`.
-            Returns a value of a type from `types`.
+    :param types: (iterable of types): Types supported by the ``encode``/``decode`` pair.
+    :param name: (str): Unique name to mark the types and hook the decoder.
+    :param encode: (callable): Convert a value to arguments.
+            Called with a value of a type from ``types``.
+            Returns a list of PYON-encodable arguments for ``decode()``.
+            Use ``wrap()`` to prevent coercion of tuples and non-str dicts.
+    :param decode: (callable): Convert arguments to a value.
+            Called with the PYON-decoded arguments from ``encode()``.
+            Returns a value of a type from ``types``.
     """
     assert not any(t in _encode_map for t in types)
     assert name not in _decode_map
@@ -238,7 +238,7 @@ def store_file(filename, x, **kw):
     """Encodes a Python object and writes it to the specified file
 
     This makes a good attempt to make the switch as atomic as possible.
-    The directory containing `filename` must be writable.
+    The directory containing ``filename`` must be writable.
     """
     directory = os.path.abspath(os.path.dirname(filename))
     with tempfile.NamedTemporaryFile(
@@ -266,7 +266,7 @@ if __name__ == "__main__":
         description="""
 Convert a PYON v1 file to JSON compliant PYON v2 in place.
 
-A backup of the input file is kept with the `_v1` extension.
+A backup of the input file is kept with the ``_v1`` extension.
 """.strip()
     )
     from .pyon_v1 import decode as decode_v1
