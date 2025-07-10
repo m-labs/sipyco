@@ -22,6 +22,7 @@ _pyon_test_object = {
     "x": np.float16(9.0), "y": np.float32(9.0), "z": np.float64(9.0),
     1j: 1-9j,
     "q": np.complex128(1j),
+    "zerodim": np.array(0),
     "od": OrderedDict(zip(reversed(range(3)), "abc")),
     "unicode": "\u269B",
     "newline": "\n" """
@@ -38,6 +39,10 @@ class PYON(unittest.TestCase):
                 # NaNs don't compare equal, so test separately.
                 assert np.all(np.isnan(pyon.decode(enc(np.nan))))
                 assert np.all(np.isnan(pyon.decode(enc(float("nan")))))
+                # Empty arrays don't compare
+                e = np.array([])
+                d = pyon.decode(enc(e))
+                assert (d.size, d.shape, d.dtype) == (e.size, e.shape, e.dtype)
 
     def test_encdec_array(self):
         orig = {k: (np.array(v), np.array([v]))
