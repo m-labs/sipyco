@@ -199,10 +199,10 @@ assert set(name for name, _ in _encode_map.values()) == set(_decode_map.keys())
 def _encode_default(o):
     try:
         name, encode = _encode_map[type(o)]
-    except KeyError as e:
+    except KeyError:
         raise TypeError(
             f"`{o!r}`: Object of type `{o.__class__.__name__}` is not PYON encodable"
-        ) from e
+        ) from None
     return {_jsonclass: [name, encode(o)]}
 
 
@@ -227,7 +227,7 @@ def _object_hook(s):
     try:
         decode = _decode_map[name]
     except KeyError:
-        raise TypeError(f"Object of type `{name}` is not PYON decodable")
+        raise TypeError(f"Object of type `{name}` is not PYON decodable") from None
     return decode(*args)
 
 
