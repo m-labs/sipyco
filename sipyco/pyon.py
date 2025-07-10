@@ -13,12 +13,14 @@ objects. Its main features are:
 * Extensible with custom type encoders/decoders.
 """
 
-from fractions import Fraction
 from collections import OrderedDict
+from dataclasses import dataclass
+from fractions import Fraction
 import json
 import os
-import tempfile
 import sys
+import tempfile
+from typing import List, Any
 
 import numpy
 
@@ -30,14 +32,14 @@ except ImportError:
 _jsonclass = sys.intern("__jsonclass__")
 
 
+@dataclass(slots=True)
 class _Dict:
-    def __init__(self, data):
-        self.data = data
+    data: List[List[Any]]
 
 
+@dataclass(slots=True)
 class _Tuple:
-    def __init__(self, data):
-        self.data = data
+    data: List[Any]
 
 
 def wrap(o):
