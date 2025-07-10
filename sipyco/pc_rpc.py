@@ -19,7 +19,7 @@ import threading
 import time
 from operator import itemgetter
 
-from sipyco import keepalive, pyon
+from sipyco import keepalive, pyon, pyon_v1
 from sipyco.tools import SignalHandler, AsyncioServer as _AsyncioServer
 from sipyco.packed_exceptions import *
 
@@ -86,6 +86,10 @@ class Client:
     automatically attempted. The user must call :meth:`~sipyco.pc_rpc.Client.close_rpc` to
     free resources properly after initialization completes successfully.
 
+    The ``pyon_v2`` (PYON v2 encoding) feature is supported and selected
+    when offered by the server. Future releases of ``Client`` will require
+    the server to offer ``pyon_v2``.
+
     :param host: Identifier of the server. The string can represent a
         hostname or a IPv4 or IPv6 address (see
         ``socket.create_connection`` in the Python standard library).
@@ -117,8 +121,17 @@ class Client:
                 ssl_context = ssl_config.create_client_context()
                 self.__socket = ssl_context.wrap_socket(self.__socket)
             self.__socket.sendall(_init_string)
-
+            self.__decode = pyon.decode
             server_identification = self.__recv()
+            features = server_identification.get("features", [])
+            self.__features = ""
+            if "pyon_v2" in features:
+               self.__features += " pyon_v2"
+               self.__encode = pyon.encode
+               self.__decode = pyon.decode
+            else:
+                self.__encode = pyon_v1.encode
+                self.__decode = pyon_v1.decode
             self.__target_names = server_identification["targets"]
             self.__description = server_identification["description"]
             self.__selected_target = None
@@ -133,7 +146,7 @@ class Client:
         """Selects a RPC target by name. This function should be called
         exactly once if the object was created with ``target_name=None``."""
         target_name = _validate_target_name(target_name, self.__target_names)
-        self.__socket.sendall((target_name + "\n").encode())
+        self.__socket.sendall((target_name + self.__features + "\n").encode())
         self.__selected_target = target_name
         self.__valid_methods = self.__recv()
 
@@ -159,12 +172,12 @@ class Client:
         self.__socket.close()
 
     def __send(self, obj):
-        line = pyon.encode(obj) + "\n"
+        line = self.__encode(obj) + "\n"
         self.__socket.sendall(line.encode())
 
     def __recv(self):
         line = _socket_readline(self.__socket)
-        return pyon.decode(line)
+        return self.__decode(line)
 
     def __do_action(self, action):
         self.__send(action)
@@ -223,7 +236,17 @@ class AsyncioClient:
             await keepalive.async_open_connection(host, port, ssl=ssl_context, limit=100 * 1024 * 1024)
         try:
             self.__writer.write(_init_string)
+            self.__decode = pyon.decode
             server_identification = await self.__recv()
+            features = server_identification.get("features", [])
+            self.__features = ""
+            if "pyon_v2" in features:
+                self.__features += " pyon_v2"
+                self.__encode = pyon.encode
+                self.__decode = pyon.decode
+            else:
+                self.__encode = pyon_v1.encode
+                self.__decode = pyon_v1.decode
             self.__target_names = server_identification["targets"]
             self.__description = server_identification["description"]
             self.__selected_target = None
@@ -239,7 +262,7 @@ class AsyncioClient:
         exactly once if the connection was created with ``target_name=None``.
         """
         target_name = _validate_target_name(target_name, self.__target_names)
-        self.__writer.write((target_name + "\n").encode())
+        self.__writer.write((target_name + self.__features + "\n").encode())
         self.__selected_target = target_name
         self.__valid_methods = await self.__recv()
 
@@ -271,14 +294,14 @@ class AsyncioClient:
         self.__description = None
 
     def __send(self, obj):
-        line = pyon.encode(obj) + "\n"
+        line = self.__encode(obj) + "\n"
         self.__writer.write(line.encode())
 
     async def __recv(self):
         line = await self.__reader.readline()
         if not line:
             raise EOFError("Connection closed unexpectedly")
-        return pyon.decode(line.decode())
+        return self.__decode(line.decode())
 
     async def __do_rpc(self, name, args, kwargs):
         await self.__lock.acquire()
@@ -356,10 +379,20 @@ class BestEffortClient:
             ssl_context = self.__ssl_config.create_client_context()
             self.__socket = ssl_context.wrap_socket(self.__socket)
         self.__socket.sendall(_init_string)
+        self.__decode = pyon.decode
         server_identification = self.__recv()
+        features = server_identification.get("features", [])
+        self.__features = ""
+        if "pyon_v2" in features:
+            self.__features += " pyon_v2"
+            self.__encode = pyon.encode
+            self.__decode = pyon.decode
+        else:
+            self.__encode = pyon_v1.encode
+            self.__decode = pyon_v1.decode
         target_name = _validate_target_name(self.__target_name,
                                             server_identification["targets"])
-        self.__socket.sendall((target_name + "\n").encode())
+        self.__socket.sendall((target_name + self.__features + "\n").encode())
         self.__valid_methods = self.__recv()
 
         # Only after the initial handshake is complete, disable the socket
@@ -404,12 +437,12 @@ class BestEffortClient:
             self.__conretry_terminate = True
 
     def __send(self, obj):
-        line = pyon.encode(obj) + "\n"
+        line = self.__encode(obj) + "\n"
         self.__socket.sendall(line.encode())
 
     def __recv(self):
         line = _socket_readline(self.__socket)
-        return pyon.decode(line)
+        return self.__decode(line)
 
     def __do_rpc(self, name, args, kwargs):
         if self.__conretry_thread is not None:
@@ -492,6 +525,10 @@ class Server(_AsyncioServer):
     otherwise a lock ensures that the calls from several clients are executed
     sequentially.
 
+    The ``pyon_v2`` (PYON v2 encoding) feature is supported and offered to
+    the client. Future releases of ``Server`` will require clients to select
+    ``pyon_v2``.
+
     :param targets: A dictionary of objects providing the RPC methods to be
         exposed to the client. Keys are names identifying each object.
         Clients select one of these objects using its name upon connection.
@@ -508,7 +545,11 @@ class Server(_AsyncioServer):
     def __init__(self, targets, description=None, builtin_terminate=False,
                  allow_parallel=False):
         _AsyncioServer.__init__(self)
+        if any(" " in name for name in targets):
+            raise ValueError("target names must not contain whitespace")
         self.targets = targets
+        if not (description is None or isinstance(description, str)):
+            raise ValueError("description must be `None` or `str`")
         self.description = description
         self.builtin_terminate = builtin_terminate
         if builtin_terminate:
@@ -585,9 +626,9 @@ class Server(_AsyncioServer):
             if self._noparallel is not None:
                 self._noparallel.release()
 
-    async def _process_and_pyonize(self, target, obj):
+    async def _process_and_pyonize(self, target, obj, encode):
         try:
-            return pyon.encode({
+            return encode({
                 "status": "ok",
                 "ret": await self._process_action(target, obj)
             })
@@ -599,7 +640,7 @@ class Server(_AsyncioServer):
             else:
                 raise
         except:
-            return pyon.encode({
+            return encode({
                 "status": "failed",
                 "exception": current_exc_packed()
             })
@@ -610,16 +651,30 @@ class Server(_AsyncioServer):
             if line != _init_string:
                 return
 
-            obj = {
+            # `server_identification` is always (past, present, and future)
+            # encodable and decodable as pure JSON and thus both PYON v2 and PYON v1.
+            server_identification = {
                 "targets": sorted(self.targets.keys()),
-                "description": self.description
+                "description": self.description,
+                "features": ["pyon_v2"],
             }
-            line = pyon.encode(obj) + "\n"
+            line = pyon.encode(server_identification) + "\n"
             writer.write(line.encode())
             line = await reader.readline()
             if not line:
                 return
-            target_name = line.decode()[:-1]
+            target_name, *features = line.decode()[:-1].split(" ")
+
+            encode = pyon_v1.encode
+            decode = pyon_v1.decode
+            for f in features:
+                if f == "pyon_v2":
+                    encode = pyon.encode
+                    decode = pyon.decode
+                else:
+                    logger.warning("Unsupported feature `%s`", f)
+                    return
+
             try:
                 target = self.targets[target_name]
             except KeyError:
@@ -632,14 +687,15 @@ class Server(_AsyncioServer):
             valid_methods = {m[0] for m in valid_methods}
             if self.builtin_terminate:
                 valid_methods.add("terminate")
-            writer.write((pyon.encode(valid_methods) + "\n").encode())
+            writer.write((encode(valid_methods) + "\n").encode())
 
             while True:
                 line = await reader.readline()
                 if not line:
                     break
                 reply = await self._process_and_pyonize(target,
-                                                        pyon.decode(line.decode()))
+                                                        decode(line.decode()),
+                                                        encode)
                 if reply is None:
                     return
                 writer.write((reply + "\n").encode())

@@ -6,7 +6,7 @@ import tempfile
 
 import numpy as np
 
-from sipyco import pyon
+from sipyco import pyon, pyon_v1
 
 
 _pyon_test_object = {
@@ -126,7 +126,7 @@ class V1(unittest.TestCase):
         x = {
             (1, 2j): Fraction(4, 1),
         }
-        self.assertEqual(x, pyon.decode_v1(str(x)))
+        self.assertEqual(x, pyon_v1.decode(str(x)))
 
 
 class Custom:

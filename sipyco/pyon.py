@@ -197,10 +197,10 @@ assert set(name for name, _ in _encode_map.values()) == set(_decode_map.keys())
 def _encode_default(o):
     try:
         name, encode = _encode_map[type(o)]
-    except KeyError:
+    except KeyError as e:
         raise TypeError(
-            f"`{o!r}`: `{o.__class__.__name__}` is not a registered PYON type"
-        )
+            f"`{o!r}`: Object of type `{o.__class__.__name__}` is not PYON encodable"
+        ) from e
     return {_jsonclass: [name, encode(o)]}
 
 
@@ -225,7 +225,7 @@ def _object_hook(s):
     try:
         decode = _decode_map[name]
     except KeyError:
-        raise TypeError(f"`{name}` is not a registered PYON type")
+        raise TypeError(f"Object of type `{name}` is not PYON decodable")
     return decode(*args)
 
 
@@ -259,30 +259,6 @@ def load_file(filename, **kw):
         return json.load(f, object_hook=_object_hook, **kw)
 
 
-_v1_eval_dict = {
-    "__builtins__": {},
-    "null": None,
-    "false": False,
-    "true": True,
-    "inf": numpy.inf,
-    "slice": slice,
-    "nan": numpy.nan,
-    "Fraction": Fraction,
-    "OrderedDict": OrderedDict,
-    "nparray": _decode_nparray,
-    "npscalar": _decode_npscalar,
-}
-
-
-def decode_v1(s):
-    """
-    Deserializes a PYON v1 string and returns the reconstructed object
-
-    **Shouldn't** be used with untrusted inputs, as it can cause vulnerability against injection attacks.
-    """
-    return eval(s, _v1_eval_dict, {})
-
-
 if __name__ == "__main__":
     import argparse
 
@@ -293,6 +269,8 @@ Convert a PYON v1 file to JSON compliant PYON v2 in place.
 A backup of the input file is kept with the `_v1` extension.
 """.strip()
     )
+    from .pyon_v1 import decode as decode_v1
+
     parser.add_argument("file")
     args = parser.parse_args()
     obj = decode_v1(open(args.file, "r", encoding="utf-8").read())
