@@ -12,6 +12,8 @@
       pname = "sipyco";
       version = "1.9";
       src = self;
+      pyproject = true;
+      build-system = [ pkgs.python3Packages.setuptools ];
       propagatedBuildInputs = with pkgs.python3Packages; [pybase64 numpy];
       nativeCheckInputs = [pkgs.openssl];
       checkPhase = "python -m unittest discover sipyco.test";
