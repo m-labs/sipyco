@@ -141,7 +141,7 @@ def _encode_nparray(x):
 
 def _decode_nparray(shape, dtype, data):
     # Copy to make it mutable and aligned
-    return numpy.frombuffer(base64.b64decode(data), dtype).reshape(shape, copy=True)
+    return numpy.frombuffer(base64.b64decode(data), dtype).reshape(shape).copy()
 
 
 register(
@@ -153,7 +153,7 @@ register(
 
 
 _numpy_scalar = {
-    "bool",
+    "bool_",
     "bytes_",
     "str_",
     "int8",
