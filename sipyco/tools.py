@@ -38,6 +38,18 @@ class TaskObject:
         raise NotImplementedError
 
 
+class BackgroundTaskPool:
+    def __init__(self, loop):
+        self.loop = loop
+        self.tasks = set()
+
+    def create(self, coro):
+        # as per https://docs.python.org/3/library/asyncio-task.html#asyncio.create_task
+        task = self.loop.create_task(coro)
+        self.tasks.add(task)
+        task.add_done_callback(self.tasks.discard)
+
+
 class AsyncioServer:
     """Generic TCP server based on asyncio.
 
