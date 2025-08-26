@@ -10,7 +10,7 @@
     pkgs = import nixpkgs {system = "x86_64-linux";};
     sipyco = pkgs.python3Packages.buildPythonPackage {
       pname = "sipyco";
-      version = "1.9";
+      version = "1.10";
       src = self;
       pyproject = true;
       build-system = [ pkgs.python3Packages.setuptools ];
