@@ -132,6 +132,10 @@ register(
 
 
 def _encode_nparray(x):
+    if isinstance(x.dtype, numpy.dtypes.ObjectDType):
+        raise TypeError(
+            f"`{x!r}`: numpy arrays with object dtype are not PYON encodable"
+        )
     return [
         list(x.shape),
         x.dtype.str,
