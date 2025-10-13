@@ -127,37 +127,33 @@ class Server(AsyncioServer):
 
     """
     async def _handle_connection_cr(self, reader, writer):
-        try:
+        line = await reader.readline()
+        if line != _init_string:
+            return
+
+        source = None
+        parser = LogParser(lambda: source)
+
+        while True:
             line = await reader.readline()
-            if line != _init_string:
+            if not line:
+                break
+            try:
+                line = line.decode()
+            except:
                 return
-
-            source = None
-            parser = LogParser(lambda: source)
-
-            while True:
-                line = await reader.readline()
-                if not line:
-                    break
-                try:
-                    line = line.decode()
-                except:
+            line = line[:-1]
+            if parser.multiline_count:
+                parser.line_input(line)
+            else:
+                linesplit = line.split(":", maxsplit=1)
+                if len(linesplit) != 2:
+                    host = writer.get_extra_info("peername")
+                    logger.warning("received improperly formatted message, "
+                                   "dropping connection to %s: '%s'", host, line)
                     return
-                line = line[:-1]
-                if parser.multiline_count:
-                    parser.line_input(line)
-                else:
-                    linesplit = line.split(":", maxsplit=1)
-                    if len(linesplit) != 2:
-                        host = writer.get_extra_info("peername")
-                        logger.warning("received improperly formatted message, "
-                                       "dropping connection to %s: '%s'", host, line)
-                        return
-                    source, remainder = linesplit
-                    parser.line_input(remainder)
-        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
-            # May happens on Windows when client disconnects
-            pass
+                source, remainder = linesplit
+                parser.line_input(remainder)
 
 
 class SourceFilter:

@@ -646,64 +646,58 @@ class Server(_AsyncioServer):
             })
 
     async def _handle_connection_cr(self, reader, writer):
-        try:
-            line = await reader.readline()
-            if line != _init_string:
+        line = await reader.readline()
+        if line != _init_string:
+            return
+
+        # `server_identification` is always (past, present, and future)
+        # encodable and decodable as pure JSON and thus both PYON v2 and PYON v1.
+        server_identification = {
+            "targets": sorted(self.targets.keys()),
+            "description": self.description,
+            "features": ["pyon_v2"],
+        }
+        line = pyon.encode(server_identification) + "\n"
+        writer.write(line.encode())
+        line = await reader.readline()
+        if not line:
+            return
+        target_name, *features = line.decode()[:-1].split(" ")
+
+        encode = pyon_v1.encode
+        decode = pyon_v1.decode
+        for f in features:
+            if f == "pyon_v2":
+                encode = pyon.encode
+                decode = pyon.decode
+            else:
+                logger.warning("Unsupported feature `%s`", f)
                 return
 
-            # `server_identification` is always (past, present, and future)
-            # encodable and decodable as pure JSON and thus both PYON v2 and PYON v1.
-            server_identification = {
-                "targets": sorted(self.targets.keys()),
-                "description": self.description,
-                "features": ["pyon_v2"],
-            }
-            line = pyon.encode(server_identification) + "\n"
-            writer.write(line.encode())
+        try:
+            target = self.targets[target_name]
+        except KeyError:
+            return
+
+        if callable(target):
+            target = target()
+
+        valid_methods = inspect.getmembers(target, callable)
+        valid_methods = {m[0] for m in valid_methods}
+        if self.builtin_terminate:
+            valid_methods.add("terminate")
+        writer.write((encode(valid_methods) + "\n").encode())
+
+        while True:
             line = await reader.readline()
             if not line:
+                break
+            reply = await self._process_and_pyonize(target,
+                                                    decode(line.decode()),
+                                                    encode)
+            if reply is None:
                 return
-            target_name, *features = line.decode()[:-1].split(" ")
-
-            encode = pyon_v1.encode
-            decode = pyon_v1.decode
-            for f in features:
-                if f == "pyon_v2":
-                    encode = pyon.encode
-                    decode = pyon.decode
-                else:
-                    logger.warning("Unsupported feature `%s`", f)
-                    return
-
-            try:
-                target = self.targets[target_name]
-            except KeyError:
-                return
-
-            if callable(target):
-                target = target()
-
-            valid_methods = inspect.getmembers(target, callable)
-            valid_methods = {m[0] for m in valid_methods}
-            if self.builtin_terminate:
-                valid_methods.add("terminate")
-            writer.write((encode(valid_methods) + "\n").encode())
-
-            while True:
-                line = await reader.readline()
-                if not line:
-                    break
-                reply = await self._process_and_pyonize(target,
-                                                        decode(line.decode()),
-                                                        encode)
-                if reply is None:
-                    return
-                writer.write((reply + "\n").encode())
-        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
-            # May happens on Windows when client disconnects
-            pass
-        finally:
-            writer.close()
+            writer.write((reply + "\n").encode())
 
     async def wait_terminate(self):
         await self._terminate_request.wait()
