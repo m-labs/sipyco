@@ -67,34 +67,30 @@ class Broadcaster(AsyncioServer):
         self._recipients = dict()
 
     async def _handle_connection_cr(self, reader, writer):
+        line = await reader.readline()
+        if line != _init_string:
+            return
+
+        line = await reader.readline()
+        if not line:
+            return
+        name = line.decode()[:-1]
+
+        queue = asyncio.Queue(self._queue_limit)
+        if name in self._recipients:
+            self._recipients[name].add(queue)
+        else:
+            self._recipients[name] = {queue}
         try:
-            line = await reader.readline()
-            if line != _init_string:
-                return
-
-            line = await reader.readline()
-            if not line:
-                return
-            name = line.decode()[:-1]
-
-            queue = asyncio.Queue(self._queue_limit)
-            if name in self._recipients:
-                self._recipients[name].add(queue)
-            else:
-                self._recipients[name] = {queue}
-            try:
-                while True:
-                    line = await queue.get()
-                    writer.write(line)
-                    # raise exception on connection error
-                    await writer.drain()
-            finally:
-                self._recipients[name].remove(queue)
-                if not self._recipients[name]:
-                    del self._recipients[name]
-        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
-            # receivers disconnecting are a normal occurence
-            pass
+            while True:
+                line = await queue.get()
+                writer.write(line)
+                # raise exception on connection error
+                await writer.drain()
+        finally:
+            self._recipients[name].remove(queue)
+            if not self._recipients[name]:
+                del self._recipients[name]
 
     def broadcast(self, name, obj):
         if name in self._recipients:

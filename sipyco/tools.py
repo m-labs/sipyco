@@ -113,11 +113,15 @@ class AsyncioServer:
         task.add_done_callback(self._client_done)
 
     async def _handle_connection_and_close(self, reader, writer):
+        client_disconnect = False
         try:
             await self._handle_connection_cr(reader, writer)
+        except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+            client_disconnect = True
         finally:
             writer.close()
-            await writer.wait_closed()
+            if not client_disconnect:
+                await writer.wait_closed()
 
     async def _handle_connection_cr(self, reader, writer):
         raise NotImplementedError
