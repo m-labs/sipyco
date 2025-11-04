@@ -145,12 +145,12 @@ Run the following command twice, once with server filenames (e.g., ``server.key`
 .. note::
     The ``-subj "/"`` parameter bypasses the interactive prompts for certificate information (country, organization, etc.) that OpenSSL normally requires.
 
-A single client certificate must be shared among multiple clients. This reduces certificate management overhead, as the server only needs to trust one client certificate. SiPyCo's SSL implementation is configured to authenticate based on certificates directly, rather than hostname verification, making this approach secure for trusted environments where certificate distribution is controlled.
+The server can trust either single or multiple client certificates. For multiple clients, simply concatenate their certificates into a single peer certificate file (e.g., using ``cat client1.pem client2.pem > trusted_clients.pem``). SiPyCo's SSL implementation is configured to authenticate based on certificates directly, rather than hostname verification, making this approach secure for trusted environments where certificate distribution is controlled.
 
 Enabling SSL
 ------------
 
-To start with SSL enabled, the server requires its own key and certificate, as well as the certificate of a client to trust. Similarly, the client requires its own key and certificate, as well as the certificate of a server to trust.
+To start with SSL enabled, the server requires its own key and certificate, as well as the certificate(s) of client(s) to trust. Similarly, the client requires its own key and certificate, as well as the certificate of a server to trust.
 
 **For servers:**
 
