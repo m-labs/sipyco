@@ -44,7 +44,7 @@ def simple_network_args(parser, default_port, ssl=False):
             help="Enable SSL authentication: "
                 "CERT: server certificate file, "
                 "KEY: server private key, "
-                "PEER: client certificate to trust "
+                "PEER: client certificate(s) to trust "
                 "(default: %(default)s)")
 
 
